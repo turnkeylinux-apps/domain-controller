@@ -62,7 +62,7 @@ def main():
             "Samba Password",
             "Enter new password for the samba 'administrator' account.")
 
-    system("service smbd stop >/dev/null || true")
+    system("/etc/init.d/samba stop >/dev/null || true")
 
     # set domain
     if domain == "DEFAULT":
@@ -95,7 +95,7 @@ def main():
     if err:
         fatal(err)
 
-    system("service smbd start >/dev/null || true")
+    system("/etc/init.d/samba start >/dev/null || true")
 
 if __name__ == "__main__":
     main()
