@@ -35,8 +35,8 @@ useradd --create-home --shell=/bin/bash --groups=smbusers,smbadmins $SMB_ADMIN
 echo $SMB_ADMIN:$SMB_ADMINPASS | chpasswd
 (echo $SMB_ADMINPASS ; echo $SMB_ADMINPASS ) | smbpasswd -a -s $SMB_ADMIN
 
-# start services (smbd - crude workaround for upstart)
-smbd
+# start services
+/etc/init.d/samba start
 /etc/init.d/cups start
 
 # setup domain groups
@@ -45,6 +45,7 @@ SMBPW="-U ${SMB_ADMIN}%${SMB_ADMINPASS}"
 net groupmap add ntgroup="Domain Admins" unixgroup=smbadmins rid=512 type=d $SMBPW
 net groupmap add ntgroup="Domain Users"  unixgroup=smbusers rid=513 type=d $SMBPW
 
+sleep 2
 net rpc $SMBPW rights grant "Domain Admins" SeMachineAccountPrivilege SeTakeOwnershipPrivilege SeBackupPrivilege SeRestorePrivilege SeRemoteShutdownPrivilege SePrintOperatorPrivilege SeAddUsersPrivilege SeDiskOperatorPrivilege
 
 # setup cups printing (PnP)
@@ -57,7 +58,7 @@ ln -s /usr/share/doc/samba-doc/htmldocs /var/www/samba
 ln -s /var/www/ajaxplorer /var/www/files
 
 # stop services
-killall smbd
+/etc/init.d/samba stop
 /etc/init.d/cups stop
 
 # setup cups certificate
