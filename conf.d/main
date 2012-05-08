@@ -31,7 +31,7 @@ flip -m $STORAGE/data/README.txt
 flip -m $STORAGE/netlogon/logon.bat
 
 # create administrator
-useradd --create-home --shell=/bin/bash --groups=smbusers,smbadmins $SMB_ADMIN
+useradd --create-home --shell=/bin/bash --groups=smbusers,smbadmins,lpadmin $SMB_ADMIN
 echo $SMB_ADMIN:$SMB_ADMINPASS | chpasswd
 (echo $SMB_ADMINPASS ; echo $SMB_ADMINPASS ) | smbpasswd -a -s $SMB_ADMIN
 
