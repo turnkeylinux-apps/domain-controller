@@ -1,0 +1,87 @@
+turnkey-domain-controller-11.1 (1) turnkey; urgency=low
+
+  * Set domain and administrator password on firstboot (convenience, security).
+
+  * Major component versions:
+
+    samba           2:3.4.7~dfsg-1ubuntu3.2
+    cupsys          1.4.3-1ubuntu1.3
+    cups-pdf        2.5.0-12
+    lighttpd        1.4.26-1.1ubuntu3
+
+  * Note: Please refer to turnkey-core's changelog for changes common to all
+    appliances. Here we only describe changes specific to this appliance.
+
+ -- Alon Swartz <alon@turnkeylinux.org>  Sun, 19 Dec 2010 15:01:05 +0200
+
+turnkey-domain-controller-2009.10 (2) hardy; urgency=low
+
+  * Installed all security updates (see manifest for package versions).
+
+  * Install security updates on firstboot (except when running live).
+
+  * Trick webmin into not checking for upgrades (managed by apt).
+
+  * Included latest version of inithooks and updated scripts.
+
+  * Included wget as per common request.
+
+ -- Alon Swartz <alon@turnkeylinux.org>  Mon, 29 Mar 2010 09:02:11 +0200
+
+turnkey-domain-controller-2009.10 (1) hardy; urgency=low
+
+  * Initial public release of TurnKey Domain Controller
+
+  * SSL support out of the box
+
+  * Domain controller configurations:
+
+    - Preconfigured domain: DOMAIN
+    - Preconfigured netbios name: PDC
+    - Includes custom samba-config script to change domain and set administrator
+      password (included as part of installation).
+
+    - Created administrator account and added to Domain Users and Domain Admins.
+    - Granted Domain Admins full permissions on the domain.
+    - Created smbgroups (smbusers, smbadmins, smbmachines).
+    - Created group mapping for smbusers: Domain Users
+    - Created group mapping for smbadmins: Domain Admins
+    - Configured samba user accounts to synchronize with unix user accounts.
+
+    - Configured netlogon service:
+
+        - Limit domain login to Domain Users and Domain Admins.
+        - Logon/home drive mapped to H:
+        - Synchronize time at login with PDC.
+        - Default permissions set owner full permissions, only.
+
+    - Configured roaming profiles:
+
+        - Public storage mapped to S:
+        - Default permissions set owner full permissions, everyone read.
+
+    - Configured printing support:
+
+        - Setup Point-and-Print (PnP).
+        - Installed PDF printer (drops printed docs to $HOME/PDF).
+        - Configured cupsys web interface to bind to all interfaces and
+          support SSL.
+          
+    - Bugfixed samba-docs (manpage and missing links).
+    - Includes flip to convert text file endings between UNIX and DOS formats.
+
+  * Includes Turnkey web control panel (convenience).
+
+  * Regenerates all secrets during installation / firstboot (security).
+
+  * Major component versions:
+
+    samba           3.0.28a-1ubuntu4.8
+    cupsys          1.3.7-1ubuntu3.5
+    cups-pdf        2.4.6-4ubuntu2
+    lighttpd        1.4.19-0ubuntu3.1
+
+  * Note: Please refer to turnkey-core's changelog for changes common to all
+    appliances. Here we only describe changes specific to this appliance.
+
+ -- Alon Swartz <alon@turnkeylinux.org>  Tue, 29 Sep 2009 15:39:41 +0200

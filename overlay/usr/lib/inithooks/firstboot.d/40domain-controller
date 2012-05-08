@@ -1,0 +1,8 @@
+#!/bin/bash -e
+# set samba domain and password
+
+. /etc/default/inithooks
+
+[ -e $INITHOOKS_CONF ] && . $INITHOOKS_CONF
+$INITHOOKS_PATH/bin/domain-controller.py --domain="$APP_DOMAIN" --pass="$APP_PASS"
+

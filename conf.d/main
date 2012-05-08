@@ -1,0 +1,65 @@
+#!/bin/bash -ex
+
+SMB_ADMIN=administrator
+SMB_ADMINPASS=turnkey
+
+STORAGE=/srv/storage
+
+# add smb groups
+addgroup smbusers
+addgroup smbadmins
+addgroup smbmachines
+
+# create storage folders
+mkdir -p $STORAGE/{netlogon,data,profiles}
+chmod 1775 $STORAGE/{data,profiles}
+chown root:smbusers $STORAGE/{data,profiles}
+
+cat >$STORAGE/data/README.txt<<EOF
+TurnKey Domain Controller Appliance
+http://www.turnkeylinux.org/domain-controller
+EOF
+
+cat >$STORAGE/netlogon/logon.bat<<EOF
+@echo off
+net use S: /DELETE
+net use S: %LOGONSERVER%\storage
+net time %LOGONSERVER% /SET /Y
+EOF
+
+flip -m $STORAGE/data/README.txt
+flip -m $STORAGE/netlogon/logon.bat
+
+# create administrator
+useradd --create-home --shell=/bin/bash --groups=smbusers,smbadmins $SMB_ADMIN
+echo $SMB_ADMIN:$SMB_ADMINPASS | chpasswd
+(echo $SMB_ADMINPASS ; echo $SMB_ADMINPASS ) | smbpasswd -a -s $SMB_ADMIN
+
+# start services (smbd - crude workaround for upstart)
+smbd
+/etc/init.d/cups start
+
+# setup domain groups
+SMBPW="-U ${SMB_ADMIN}%${SMB_ADMINPASS}"
+
+net groupmap add ntgroup="Domain Admins" unixgroup=smbadmins rid=512 type=d $SMBPW
+net groupmap add ntgroup="Domain Users"  unixgroup=smbusers rid=513 type=d $SMBPW
+
+net rpc $SMBPW rights grant "Domain Admins" SeMachineAccountPrivilege SeTakeOwnershipPrivilege SeBackupPrivilege SeRestorePrivilege SeRemoteShutdownPrivilege SePrintOperatorPrivilege SeAddUsersPrivilege SeDiskOperatorPrivilege
+
+# setup cups printing (PnP)
+cupsaddsmb -v -H localhost $SMBPW -a
+
+# symlink for samba documentation
+ln -s /usr/share/doc/samba-doc/htmldocs /var/www/samba
+
+# stop services
+killall smbd
+/etc/init.d/cups stop
+
+# setup cups certificate
+/usr/lib/inithooks/firstboot.d/16cups-sslcert
+
+# tweak tkl-webcp
+sed -i "s|padding: 5pt 8px;|padding: 5pt 8px 25pt 8px;|" /var/www/css/base.css
+

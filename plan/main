@@ -1,0 +1,8 @@
+#include <turnkey/base>
+#include <turnkey/samba>
+
+cupsys
+cups-pdf
+
+lighttpd        /* used to power samba documentation */
+samba-doc
