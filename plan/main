@@ -2,7 +2,7 @@
 #include <turnkey/samba>
 #include <turnkey/ajaxplorer>
 
-cupsys
+cups
 cups-pdf
 
 samba-doc
