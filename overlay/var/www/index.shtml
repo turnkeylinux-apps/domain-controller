@@ -48,7 +48,11 @@
                         <a href="https://<!--#echo var="HTTP_HOST"-->:12321">
                         <img src="images/webmin.png"/>Webmin</a>
                     </div>
-                    <div></div>
+                    <div>
+                        <a href="https://<!--#echo
+                        var="HTTP_HOST"-->/files">
+                        <img src="images/filemanager.png"/>File Manager</a>
+                    </div>
 
                     <h2>Resources and references</h2>
                     <ul>

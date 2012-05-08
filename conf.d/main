@@ -53,6 +53,9 @@ cupsaddsmb -v -H localhost $SMBPW -a
 # symlink for samba documentation
 ln -s /usr/share/doc/samba-doc/htmldocs /var/www/samba
 
+# files symlink to ajaxplorer
+ln -s /var/www/ajaxplorer /var/www/files
+
 # stop services
 killall smbd
 /etc/init.d/cups stop

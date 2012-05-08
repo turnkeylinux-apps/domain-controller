@@ -1,8 +1,8 @@
 #include <turnkey/base>
 #include <turnkey/samba>
+#include <turnkey/ajaxplorer>
 
 cupsys
 cups-pdf
 
-lighttpd        /* used to power samba documentation */
 samba-doc
