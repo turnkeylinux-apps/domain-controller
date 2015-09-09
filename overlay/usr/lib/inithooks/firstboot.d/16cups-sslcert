@@ -6,10 +6,10 @@ CRT_PATH=/etc/cups/ssl/server.crt
 rm -f $KEY_PATH $CRT_PATH
 
 while read line; do
-    if echo $line | grep -q "BEGIN RSA PRIVATE KEY"; then OUTFILE=$KEY_PATH; fi
+    if echo $line | grep -q "BEGIN PRIVATE KEY"; then OUTFILE=$KEY_PATH; fi
     if echo $line | grep -q "BEGIN CERTIFICATE"; then OUTFILE=$CRT_PATH; fi
     echo $line >> $OUTFILE
-done < /etc/ssl/certs/cert.pem
+done < /etc/ssl/private/cert.pem
 
 chmod 644 $CRT_PATH
 chmod 640 $KEY_PATH

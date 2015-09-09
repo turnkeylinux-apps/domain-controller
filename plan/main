@@ -1,8 +1,13 @@
 #include <turnkey/base>
 #include <turnkey/samba>
-#include <turnkey/ajaxplorer>
 
 cups
 cups-pdf
 
+acl
+attr  /* Samba AD dependency */
+krb5-user
+samba-vfs-modules
 samba-doc
+
+lighttpd

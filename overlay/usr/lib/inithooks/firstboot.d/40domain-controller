@@ -1,8 +1,17 @@
 #!/bin/bash -e
-# set samba domain and password
+# set samba domain, realm and administrator password
 
 . /etc/default/inithooks
 
 [ -e $INITHOOKS_CONF ] && . $INITHOOKS_CONF
-$INITHOOKS_PATH/bin/domain-controller.py --domain="$APP_DOMAIN" --pass="$APP_PASS"
+
+# support partially preseeded headless deployments
+if [ -z "$APP_REALM" ]; then
+    if [ -n "$APP_PASS" ] && [ -n "$APP_DOMAIN" ]; then
+        APP_REALM="$APP_DOMAIN.lan"
+    fi
+fi
+
+[ -e $INITHOOKS_CONF ] && . $INITHOOKS_CONF
+$INITHOOKS_PATH/bin/domain-controller.py --domain="$APP_DOMAIN" --realm="$APP_REALM" --pass="$APP_PASS"
 
