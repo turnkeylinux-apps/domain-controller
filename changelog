@@ -1,3 +1,16 @@
+turnkey-domain-controller-14.0 (1) turnkey; urgency=low
+
+  * Debian Jessie package version of Samba4.
+
+  * Configured as Active Directory Domain Controller.
+
+  * AjaXplorer/fileserver functionality removed.
+
+  * Note: Please refer to turnkey-core's changelog for changes common to all
+    appliances. Here we only describe changes specific to this appliance.
+
+ -- Jeremy Davis <jeremy@turnkeylinux.org> Thu, 10 Sept 2015 20:50:12 +1000
+
 turnkey-domain-controller-13.0 (1) turnkey; urgency=low
 
   * Latest Debian Wheezy package version of Samba.

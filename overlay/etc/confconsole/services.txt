@@ -2,6 +2,5 @@ Web:          http://$ipaddr
 CUPS admin:   https://$ipaddr:631
 Web shell:    https://$ipaddr:12320
 Webmin:       https://$ipaddr:12321
-File manager: https://$ipaddr/files
 SMB/CIFS:     \\$ipaddr (ports 139/445)
 SSH/SFTP:     root@$ipaddr (port 22)
