@@ -38,6 +38,9 @@ samba-tool dns add dom-controller 1.168.192.in-addr.arpa 192.168.1.50 PTR dc1.do
     -edit /etc/samba/smb.conf and adjust the field that 
      is currently "dns forwarder = 8.8.8.8"
 
+For how to join a Windows Desktop to a AD domain see the Samba Wiki: 
+https://wiki.samba.org/index.php/Joining_a_Windows_client_to_a_domain
+
 Features to be added in the future:
 -----------------------------------
 - Option to provision a fileserver AD member server
