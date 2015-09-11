@@ -14,15 +14,24 @@ Steps that need to be taken when first launched:
 ------------------------------------------------
 - Set a static IP on your domain-controller
     -easiest via confconsole
-    -if not the DHCP assigned IP please re-run the domain 
-     provision inithook (copy/paste the following into 
-     commandline:
+    -if not using he DHCP assigned IP please re-run the 
+     domain provision inithook (copy/paste the following 
+     into commandline:
 
-/usr/lib/inithooks/bin/domain-controller
+/usr/lib/inithooks/bin/domain-controller.py
 
-- (optional) Create the DNS zone and PTR records.
-  example details"
-  domain
+- (optional) Create the DNS reverse lookup zone and PTR records.
+  example details:
+  hostname: dc1  
+  domain/realm: domain.lan
+  ip address: 192.168.1.50
+
+# Substitute $ADMIN_PASS for the administrator password 
+# the 1.168.192 is from the "network IP" (backwards) i.e. this example is for 192.168.1.x
+samba-tool dns zonecreate dc1 1.168.192.in-addr.arpa --username=administrator --password="$ADMIN_PASS"
+
+# as above but 50 is from the IP i.e. 192.168.1.50
+samba-tool dns add dom-controller 1.168.192.in-addr.arpa 192.168.1.50 PTR dc1.domain.lan --username=administrator --password="$ADMIN_PASS"
 
 - (optional) Adjust DNS forwarder in /etc/samba/smb.conf
     -currently hardcoded to Google DNS (8.8.8.8)
@@ -53,18 +62,15 @@ https://wiki.samba.org/index.php/Backup_and_restore_an_Samba_AD_DC
 
 Note: if you have multiple AD DCs then rather than restore 
 from backup; just rejoin the server to the domain. Restoring 
-a backup to a server already a member of a domain will likely 
-cause DB corruption and/or multiple iddentical domain objects.
+a backup to a server that is already a member of a domain will 
+likely cause DB corruption and/or multiple identical domain 
+objects.
 
-Extras:
--------
-
-As noted about 
 
 Best practice recommendations:
 ------------------------------
 General DC Notes
-- In production it is recommended that you have a mimimum
+- In production it is recommended that you have a minimum
   of 2 domain controllers in an AD domain. 
 
 File storage/fileserver
@@ -72,7 +78,8 @@ File storage/fileserver
   also as a fileserver as well. Instead it is recommended 
   that you create a dedicated fileserver (as a domain member 
   server). The current TurnKey fileserver appliance is 
-  NOT currently useful for this. See notes on Samba wiki:
+  NOT useful for this. See notes on the Samba wiki on 
+  setting up a member server:
 https://wiki.samba.org/index.php/Setup_a_Samba_AD_Member_Server
 
 Further domain configuration e.g. DNS, 
@@ -87,7 +94,7 @@ Realm/TLD
   own (e.g. "example.com") as your realm then add a 
   unique subdomain to avoid potential problems (e.g. 
   "ad.example.com")
-  Do not use ".local" realms/tlds as they can conflict 
+- Do not use ".local" realms/tlds as they can conflict 
   with Apple (bonjour) and zeroconf type networked devices.
-  See also MS documentation:
+- See also MS documentation:
 http://technet.microsoft.com/en-us/library/cc726016%28v=ws.10%29.aspx/
