@@ -44,5 +44,5 @@ Credentials *(passwords set at first boot)*
 -  Webmin, Webshell, SSH, MySQL: username **root**
 -  Samba: username **administrator**
 
-.. _TurnKey Core: http://www.turnkeylinux.org/core
-.. _Domain Controller documentation: http://www.turnkeylinux.org/docs/domain-controller
+.. _TurnKey Core: https://www.turnkeylinux.org/core
+.. _Domain Controller documentation: https://www.turnkeylinux.org/docs/domain-controller
