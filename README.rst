@@ -1,8 +1,10 @@
 Domain Controller - Active Directory (AD) server
 ================================================
 
-A Samba-based Windows AD-DC (Active Directory Domain Controller) 
-server (without the Windows) which is configured to support netlogon.
+A Samba-based Windows-compatible Active Directory domain controller,
+without the Windows. 
+
+) which is configured to support netlogon.
 
 As of v14.0 the DC appliance is a 'barebones' AD compatible DC 
 which uses Samba4. It also includes PnP printing services with an 
