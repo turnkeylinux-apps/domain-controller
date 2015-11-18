@@ -1,42 +1,40 @@
-Domain Controller - Active Directory (AD) server
+Domain Controller - free Active Directory server
 ================================================
 
-A Samba-based Windows-compatible Active Directory domain controller,
-without the Windows. 
-
-) which is configured to support netlogon.
-
-As of v14.0 the DC appliance is a 'barebones' AD compatible DC 
-which uses Samba4. It also includes PnP printing services with an 
-example PDF printing service. Includes a web interface for 
-configuring Samba (Webmin) and printing services (CUPS).
+A Samba4-based Active Directory-compatible domain controller that
+supports printing services and centralized Netlogon authentication for
+Windows systems, without requiring Windows Server.  Since 1992, Samba
+has provided a secure and stable free software re-implementation of
+standard Windows services and protocols (SMB/CIFS).
 
 This appliance includes all the standard features in `TurnKey Core`_,
 and on top of that:
 
 - SSL support out of the box.
-- Includes TurnKey web control panel (convenience).
 - Webmin modules for configuring Samba.
-- Includes flip to convert text file endings between UNIX and DOS
-  formats.
-- Domain controller (samba) configurations:
+
+- Domain controller (Samba) configurations:
    
-   - Sets domain/realm names on first boot
-   - Preconfigured netbios name: PDC
-   - Created administrator account is pre-set as Domain User/Admin
-   - Domain Admins have full permissions on the domain.
-      - Default permissions: owner full permissions.
+  - Preconfigured NetBIOS name: PDC
+  - Sets domain/realm names on first boot
+  - Created administrator account is pre-set as Domain User/Admin
+  - Domain Admins have full permissions on the domain.
 
+    - Default permissions: owner full permissions.
 
-   - Configured printing support:
-      
-      - Installed PDF printer (drops printed docs to $HOME/PDF).
-      - Configured cups web interface to bind to all interfaces and
-        support SSL.
+  - Configured plug-and-play printing support:
+     
+     - Installed PDF printer (drops printed docs to $HOME/PDF).
+     - Configured cups web interface to bind to all interfaces and
+       support SSL.
 
+- Includes **flip** to convert text file endings between UNIX and DOS
+  formats.
+- Includes TurnKey web control panel (convenience).
 
 Important
 ---------
+
 -  See the `Domain Controller documentation`_ for limitations and 
    requirements.
 
