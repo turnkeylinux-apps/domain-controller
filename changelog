@@ -1,6 +1,6 @@
 turnkey-domain-controller-14.1 (1) turnkey; urgency=low
 
-  * Add additional required ports to the firewall config []
+  * Add additional required ports to the firewall config [#573]
 
   * Fix LigHTTPd bug in 15regen-sllcert [#512].
 
