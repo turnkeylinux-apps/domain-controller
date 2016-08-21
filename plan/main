@@ -11,3 +11,4 @@ samba-vfs-modules
 samba-doc
 
 lighttpd
+winbind
