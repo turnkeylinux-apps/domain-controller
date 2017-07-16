@@ -86,7 +86,8 @@ def main():
 
         admin_password = d.get_password(
                 "Samba Password",
-                "Enter new password for the samba 'administrator' account.", pass_req=r'(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}')
+                "Enter new password for the samba 'administrator' account.",
+                pass_req=8, min_complexity=3)
 
     # stop Samba service(s) - in case it's already running
     system("/etc/init.d/samba stop >/dev/null || true")
