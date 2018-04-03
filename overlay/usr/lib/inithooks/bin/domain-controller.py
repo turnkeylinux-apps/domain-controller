@@ -89,37 +89,8 @@ def main():
                 "Enter new password for the samba 'administrator' account.",
                 pass_req=8, min_complexity=3)
 
-    # stop Samba service(s) - in case it's already running
-    system("/etc/init.d/samba stop >/dev/null || true")
-    system("/etc/init.d/samba-ad-dc stop >/dev/null || true")
-
-    # just in case Samba4 has been set up Samba3 style
-    system("/etc/init.d/smbd stop >/dev/null || true")
-    system("/etc/init.d/nmbd stop >/dev/null || true")
-
-    remove('/etc/samba/smb.conf')
-
-    system('samba-tool domain provision --realm {REALM} --domain {DOMAIN} --adminpass {ADMIN_PASSWORD} --server-role=dc --use-rfc2307 --option="dns forwarder = 8.8.8.8"'.format(REALM = realm, DOMAIN = domain, ADMIN_PASSWORD = admin_password))
-
-    system('samba-tool user setexpiry {ADMIN_USER} --noexpiry'.format(ADMIN_USER=ADMIN_USER))
-
-    system('samba-tool domain exportkeytab /etc/krb5.keytab')
-
-    system('chown root:root /etc/krb5.keytab; chmod 600 /etc/krb5.keytab')
     
-    system('ln -sf /var/lib/samba/private/krb5.conf /etc/krb5.conf')
- 
-    system('sed -i "s/domain.*/domain {REALM}/" /etc/resolvconf/resolv.conf.d/head'.format(REALM = realm))
-    system('sed -i "s/search.*/search {REALM}/" /etc/resolvconf/resolv.conf.d/head'.format(REALM = realm))
-
-    system('service samba-ad-dc start')
-
-    system('sleep 5')
-
-    system('echo {ADMIN_PASSWORD} | kinit {ADMIN_USER}@{REALM}'.format(ADMIN_PASSWORD=admin_password, ADMIN_USER=ADMIN_USER, REALM=realm.upper()))
-
-    system("/etc/init.d/samba-ad-dc restart >/dev/null || true")
+    system('/usr/lib/inithooks/bin/sambaconf.sh -r {REALM} -d {DOMAIN} -u {ADMIN_USER} -p {ADMIN_PASSWORD}'.format(DOMAIN = domain, ADMIN_PASSWORD=admin_password, ADMIN_USER=ADMIN_USER, REALM=realm))
 
 if __name__ == "__main__":
     main()
-

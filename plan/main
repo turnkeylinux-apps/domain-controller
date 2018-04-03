@@ -8,7 +8,9 @@ acl
 attr  /* Samba AD dependency */
 krb5-user
 samba-vfs-modules
-samba-doc
+
+samba-dsdb-modules
+ldb-tools
 
 lighttpd
 winbind
