@@ -13,5 +13,7 @@ ln -s /usr/share/doc/samba-doc/htmldocs /var/www/samba
 # tweak tkl-webcp
 sed -i "s|padding: 5pt 8px;|padding: 5pt 8px 25pt 8px;|" /var/www/css/base.css
 
-chmod +x /usr/lib/inithooks/bin/sambaconf.sh
+chmod +x /usr/lib/inithooks/bin/sambaconf_add.sh
+chmod +x /usr/lib/inithooks/bin/sambaconf_join.sh
+
 systemctl unmask samba-ad-dc
