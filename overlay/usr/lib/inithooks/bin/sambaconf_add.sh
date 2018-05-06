@@ -7,7 +7,7 @@ while getopts d:r:u:p: option
         d) DOMAIN=${OPTARG};;
         r) REALM=${OPTARG};;
         u) ADMIN_USER=${OPTARG};;
-        p) ADMIN_PASSWORD=$OPTARG;;
+        p) ADMIN_PASSWORD=${OPTARG};;
     esac
 done
 
@@ -19,7 +19,7 @@ done
 /etc/init.d/smbd stop >/dev/null || true
 /etc/init.d/nmbd stop >/dev/null || true
 
-rm /etc/samba/smb.conf
+rm /etc/samba/smb.conf || true
 
 samba-tool domain provision --realm $REALM --domain $DOMAIN --adminpass $ADMIN_PASSWORD --server-role=dc --use-rfc2307 --option="dns forwarder = 8.8.8.8"
 
