@@ -32,15 +32,6 @@
             <div id="cp">
                 <div class="fragment-content">
                     <div>
-                        <a href="https://<!--#echo
-                        var="HTTP_HOST"-->:12321/samba/index.cgi">
-                        <img src="images/samba.png"/>Samba<br/>(via webmin)</a>
-                    </div>
-                    <div>
-                        <a href="https://<!--#echo var="HTTP_HOST"-->:631">
-                        <img src="images/cups.png"/>Printing<br/>(cups)</a>
-                    </div>
-                    <div>
                         <a href="https://<!--#echo var="HTTP_HOST"-->:12320">
                         <img src="images/shell.png"/>Web Shell</a>
                     </div>
@@ -48,12 +39,21 @@
                         <a href="https://<!--#echo var="HTTP_HOST"-->:12321">
                         <img src="images/webmin.png"/>Webmin</a>
                     </div>
+                    <div>
+                        <a href="https://<!--#echo
+                        var="HTTP_HOST"-->:12321/samba/index.cgi">
+                        <img src="images/samba.png"/>Samba conf<br/>via Webmin<br/>(login first)</a>
+                    </div>
+                    <div>
+                        <a href="https://<!--#echo var="HTTP_HOST"-->:631">
+                        <img src="images/cups.png"/>Printing<br/>(cups)</a>
+                    </div>
                     <div></div>
 
                     <h2>Resources and references</h2>
                     <ul>
-                        <li>Samba documentation (<a href="/samba">local</a>,
-                        <a href="http://samba.org/samba/docs">online</a>)</li>
+                        <li><a href="http://samba.org/samba/docs">
+                            Samba documentation</a></li>
 
                         <li>Important: <a href="https://www.turnkeylinux.org/docs/domain-controller">TurnKey specific documentation</a></li>
                         <li><a href="https://www.turnkeylinux.org/domain-controller">TurnKey Domain Controller release notes</a></li>
