@@ -15,8 +15,9 @@ and on top of that:
 
 - Domain controller (Samba) configurations:
    
-  - Preconfigured NetBIOS name: PDC
+  - Preconfigured NetBIOS name: DC1
   - Sets domain/realm names on first boot
+  - Create new AD domain, or join existing AD domain
   - Created administrator account is pre-set as Domain User/Admin
   - Domain Admins have full permissions on the domain.
 
