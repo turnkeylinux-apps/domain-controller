@@ -8,9 +8,12 @@ Options:
                  DEFAULT=domain.lan
     --domain=    if not provided, will ask interactively
                  DEFAULT=DOMAIN
-    --join=      if not provided, will ask interactively
+    --join=      [true|false]
+                 if not provided, will ask interactively
                  DEFAULT=false
     --join_ns=   if not provided, will ask interactively
+                 only required if --join=true; otherwise
+                 ignored
 """
 
 import sys
@@ -60,7 +63,7 @@ NET_IP4=NET_IP.split('.')[-1]
 def main():
     try:
         opts, args = getopt.gnu_getopt(sys.argv[1:], "h",
-                                       ['help', 'pass=', 'realm=', 'domain='])
+                                       ['help', 'pass=', 'realm=', 'domain=', 'join=', 'join_ns='])
     except getopt.GetoptError, e:
         usage(e)
 
@@ -68,8 +71,8 @@ def main():
     domain = ""
     admin_password = ""
 
-    join = False
-    join_nameserver = False
+    join = ""
+    join_nameserver = ""
 
     for opt, val in opts:
         if opt in ('-h', '--help'):

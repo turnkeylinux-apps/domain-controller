@@ -11,7 +11,11 @@ if [ -z "$APP_REALM" ]; then
         APP_REALM="$APP_DOMAIN.lan"
     fi
 fi
+if [ -z "APP_JOIN" ]; then
+    APP_JOIN="false"
+    APP_JOIN_NS="false"
+fi
 
 [ -e $INITHOOKS_CONF ] && . $INITHOOKS_CONF
-$INITHOOKS_PATH/bin/domain-controller.py --domain="$APP_DOMAIN" --realm="$APP_REALM" --pass="$APP_PASS"
+$INITHOOKS_PATH/bin/domain-controller.py --domain="$APP_DOMAIN" --realm="$APP_REALM" --pass="$APP_PASS" --join="$APP_JOIN" --join_ns="$APP_JOIN_NS"
 
