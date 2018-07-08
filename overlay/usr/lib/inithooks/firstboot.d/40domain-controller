@@ -11,11 +11,17 @@ if [ -z "$APP_REALM" ]; then
         APP_REALM="$APP_DOMAIN.lan"
     fi
 fi
-if [ -z "APP_JOIN" ]; then
-    APP_JOIN="false"
-    APP_JOIN_NS="false"
+
+if [ -z "$APP_JOIN" ] || [ -z "$APP_JOIN_NS" ]; then
+    if [ -n "$APP_PASS" ] && [ -n "$APP_DOMAIN" ]; then
+        APP_JOIN="False"
+    fi
 fi
 
-[ -e $INITHOOKS_CONF ] && . $INITHOOKS_CONF
-$INITHOOKS_PATH/bin/domain-controller.py --domain="$APP_DOMAIN" --realm="$APP_REALM" --pass="$APP_PASS" --join="$APP_JOIN" --join_ns="$APP_JOIN_NS"
+# Do not interact with the user if Samba can`t join existing domain (when working in headless mode)
+if [ -n "$APP_PASS" ] && [ -n "$APP_DOMAIN" ]; then
+    APP_JOIN_CHECK="False"
+fi
+
+$INITHOOKS_PATH/bin/domain-controller.py --domain="$APP_DOMAIN" --realm="$APP_REALM" --pass="$APP_PASS" --join="$APP_JOIN" --join_ns="$APP_JOIN_NS" --join_check="$APP_JOIN_CHECK"
 
