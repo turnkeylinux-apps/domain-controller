@@ -8,9 +8,16 @@ Options:
                  DEFAULT=domain.lan
     --domain=    if not provided, will ask interactively
                  DEFAULT=DOMAIN
-    --join=      if not provided, will ask interactively
+    --join=      [true|false]
+                 if not provided, will ask interactively
                  DEFAULT=false
     --join_ns=   if not provided, will ask interactively
+                 only required if --join=true; otherwise
+                 ignored
+    --join_check=[true|false]
+                 only required if --join=true; otherwise
+                 ignored
+                 DEFAULT=true                 
 """
 
 import sys
@@ -60,7 +67,7 @@ NET_IP4=NET_IP.split('.')[-1]
 def main():
     try:
         opts, args = getopt.gnu_getopt(sys.argv[1:], "h",
-                                       ['help', 'pass=', 'realm=', 'domain='])
+                                       ['help', 'pass=', 'realm=', 'domain=', 'join=', 'join_ns=', 'join_check='])
     except getopt.GetoptError, e:
         usage(e)
 
@@ -68,8 +75,9 @@ def main():
     domain = ""
     admin_password = ""
 
-    join = False
+    join = "ask interactively"
     join_nameserver = False
+    join_check = True
 
     for opt, val in opts:
         if opt in ('-h', '--help'):
@@ -82,13 +90,17 @@ def main():
         elif opt == '--domain':
             domain = val
         elif opt == '--join':
-            join = val
+            if(val):
+                join = (val in ['true', 'True'])
         elif opt == '--join_ns':
             join_nameserver = val
+        elif opt == '--join_check':
+            if(val):
+                join_check = (val in ['true', 'True'])
 
     while 1:
 
-        if not join:
+        if join == "ask interactively":
             d = Dialog('Turnkey Linux - First boot configuration')
             join = d.yesno(
                 "Join existing AD?",
@@ -143,7 +155,9 @@ def main():
 
         if join:            
             system('/usr/lib/inithooks/bin/sambaconf_join.sh -r {REALM} -d {DOMAIN} -u {ADMIN_USER} -p {ADMIN_PASSWORD} -n {NAME_SERVER} 2> /var/log/dc.log || true'.format(DOMAIN = domain, ADMIN_PASSWORD=admin_password, ADMIN_USER=ADMIN_USER, REALM=realm, NAME_SERVER=join_nameserver))
-            if  'ERROR' in open('/var/log/dc.log').read():
+            if  'ERROR' in open('/var/log/dc.log').read():                
+                if not join_check:
+                    break                    
                 system('mv /var/log/dc.log /var/log/dc.log_old')
                 d = Dialog('Turnkey Linux - First boot configuration')
                 d.error("Can't join a Samba DC to an Existing Active Directory.\nPlease check your input.")
