@@ -3,6 +3,7 @@
 # set localhost to be always be first nameserver
 echo "nameserver 127.0.0.1" >> /etc/resolvconf/resolv.conf.d/head
 echo "search domain.lan" >> /etc/resolvconf/resolv.conf.d/head
+echo "domain domain.lan" >> /etc/resolvconf/resolv.conf.d/head
 
 # symlink for samba documentation
 ln -s /usr/share/doc/samba-doc/htmldocs /var/www/samba
@@ -16,4 +17,12 @@ sed -i "s|padding: 5pt 8px;|padding: 5pt 8px 25pt 8px;|" /var/www/css/base.css
 chmod +x /usr/lib/inithooks/bin/sambaconf_add.sh
 chmod +x /usr/lib/inithooks/bin/sambaconf_join.sh
 
+# disable standalone samba services - samba-ad-dc will start if required
+# note: they won't start anyway, this just keeps the logs cleaner
+systemctl disable smbd.service
+systemctl disable nmbd.service
+systemctl disable winbind.service
+
+# enable samba-ad-dc service
 systemctl unmask samba-ad-dc
+systemctl enable samba-ad-dc
