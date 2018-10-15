@@ -25,9 +25,9 @@ rm -f $CONF
 rm -f /etc/krb5.conf
 
 # clean up *.tdb and *.ldb files (samba DBs)
-DIRS=$(smbd -b | egrep "LOCKDIR|STATEDIR|CACHEDIR|PRIVATE_DIR")
+DIRS=$(smbd -b | egrep "LOCKDIR|STATEDIR|CACHEDIR|PRIVATE_DIR" | cut -d: -f2)
 for dir in $DIRS; do
-    find $dir \( -name "*.tdb" -or -name "*.ldb" \) -delete
+    find $dir \( -name "*.tdb" -or -name "*.ldb" \) -delete || true
 done
 
 samba-tool domain provision --realm $REALM --domain $DOMAIN --adminpass $ADMIN_PASSWORD --server-role=dc --use-rfc2307 --option="dns forwarder = 8.8.8.8"

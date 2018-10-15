@@ -35,9 +35,9 @@ rm -f $CONF
 rm -f /etc/krb5.conf
 
 # clean up *.tdb and *.ldb files (samba DBs)
-DIRS=$(smbd -b | egrep "LOCKDIR|STATEDIR|CACHEDIR|PRIVATE_DIR")
+DIRS=$(smbd -b | egrep "LOCKDIR|STATEDIR|CACHEDIR|PRIVATE_DIR" | cut -d: -f2)
 for dir in $DIRS; do
-    find $dir \( -name "*.tdb" -or -name "*.ldb" \) -delete
+    find $dir \( -name "*.tdb" -or -name "*.ldb" \) -delete || true
 done
 
 samba-tool domain join $REALM DC -U"$DOMAIN\\$ADMIN_USER" --password=$ADMIN_PASSWORD --dns-backend=SAMBA_INTERNAL
