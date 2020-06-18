@@ -1,83 +1,154 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # Copyright (c) 2010 Alon Swartz <alon@turnkeylinux.org> - all rights reserved
-"""Configure samba domain and password
+# Copyright (c) 2011-2020 TurnKey GNU/Linux <admin@turnkeylinux.org>
+"""Configure Samba AD domain, realim and administrator password
 
 Options:
-    --pass=      if not provided, will ask interactively
-    --realm=     if not provided, will ask interactively
-                 DEFAULT=domain.lan
-    --domain=    if not provided, will ask interactively
-                 DEFAULT=DOMAIN
-    --join=      [true|false]
-                 if not provided, will ask interactively
-                 DEFAULT=false
-    --join_ns=   if not provided, will ask interactively
-                 only required if --join=true; otherwise
-                 ignored
-    --join_check=[true|false]
-                 only required if --join=true; otherwise
-                 ignored
-                 DEFAULT=true                 
+    --pass=         AD domain 'Administrator' password.
+                    Must not contain '(' or ')' characters.
+                    If not provided, will ask interactively.
+    --realm=        AD Kerberos realm & AD DMS zone to create or join.
+                    Realm will be uppercase and DNS zone will be lower case.
+                    If not set will ask interactively.
+                    DEFAULT=DOMAIN.LAN
+    --domain=       NetBIOS domain (aka 'workgroup') to create or join.
+                    If Realm and Domain are not set, will ask interactively.
+                    If Realm set non-interactively, domain will be the first
+                    part of the domain, before the first period.
+                    DEFAULT=DOMAIN
+   --join_ns=       To join an existing domain, you must provide the IPv4 of
+                    nameserver to use.
+                    If '--pass', '--realm' & '--domain' set, but not
+                    '--join_ns", this script will create a new domain. If
+                    '--pass' &/or '--realm' &/or '--domain' not set, will ask
+                    interactively.
+                    If '--join_ns' is set but is not a valid IPv4, will ask
+                    interactively.
+
+Environment::
+
+    _TURNKEY_INIT   If set, will assume the script is running under
+                    'turnkey-init' and will run interactively. An initial
+                    confirmation re reconfiguration will also be asked.
+
+Notes:
+------
+
+Warning: previous configuration will be cleared!
+
+To create a new AD domain non-interactively, set valid '--pass', '--realm' and
+'--domain'.
+
+To join an existing domain non-interactively, set valid '--pass', '--realm',
+--domain' and '--join_ns'.
+
+To run interactively, ensure that '--pass' &/or '--realm' &/or '--domain' are
+_not_ set. Or set env var '_TURNKEY_INIT'. All components that are not provided
+valid values via commandline will be asked.
 """
 
 import sys
+import os
+import glob
 import getopt
-import subprocess
 import socket
-
+import subprocess
 from subprocess import PIPE
-from os import remove
-from os import path
 from string import digits, ascii_uppercase, ascii_lowercase, punctuation
 
-from executil import system, getoutput
 from dialog_wrapper import Dialog
+
+
+ADMIN_USER = "administrator"
+DEFAULT_REALM = "DOMAIN.LAN"
+TURNKEY_INIT = os.getenv("_TURNKEY_INIT")
+
+
+def getoutput(command):
+    return subprocess.run(command,
+                          encoding='utf-8',
+                          stdout=PIPE).stdout.strip()
+
+
+HOSTNAME = getoutput(['hostname', '-s'])
+NET_IP = getoutput(['hostname', '-I'])
+
+NET_IP321 = NET_IP.split('.')[:-1]
+NET_IP321.reverse()
+NET_IP321 = '.'.join(NET_IP321)
+NET_IP4 = NET_IP.split('.')[-1]
+
 
 def usage(s=None):
     if s:
-        print >> sys.stderr, "Error:", s
-    print >> sys.stderr, "Syntax: %s [options]" % sys.argv[0]
-    print >> sys.stderr, __doc__
+        print("Error:", s, file=sys.stderr)
+    print("Syntax: %s [options]" % sys.argv[0], file=sys.stderr)
+    print(__doc__, file=sys.stderr)
     sys.exit(1)
+
 
 def fatal(s):
-    print >> sys.stderr, "Error:", s
+    print("Error:", s, file=sys.stderr)
     sys.exit(1)
 
-def valid_ip(address):
-    try: 
+
+def validate_ip(address):
+    try:
         socket.inet_aton(address)
-        return True
-    except:
+        return address
+    except OSError:
         return False
 
-ADMIN_USER="administrator"
 
-DEFAULT_DOMAIN="DOMAIN"
-DEFAULT_REALM="domain.lan"
+def valiadate_realm(realm):
+    realm = realm.strip('.')
+    if len(realm) > 255:
+        return None
+    for bit in realm.split(','):
+        if len(bit) < 0 or > 63:
+            return None
+        if not bit.isalpha():
+            return None
+    return realm.upper()
 
-HOSTNAME=getoutput('hostname -s').strip()
-NET_IP=getoutput('hostname -I').strip()
 
-NET_IP321=NET_IP.split('.')[:-1]
-NET_IP321.reverse()
-NET_IP321='.'.join(NET_IP321)
-NET_IP4=NET_IP.split('.')[-1]
+def valiadate_netbios(domain):
+    if len(domain) < 1 or len(domain) > 15:
+        return None
+    if not domain.isalpha():
+        return None
+    return domain.upper()
+
+
+def rm_f(path):
+    try:
+        os.remove(path)
+    except FileNotFoundError:
+        pass
+
+
+def rm_glob(path):
+    file_list = glob.glob(path)
+    for file_path in file_list:
+        rm_f(file_path)
+
 
 def main():
     try:
         opts, args = getopt.gnu_getopt(sys.argv[1:], "h",
-                                       ['help', 'pass=', 'realm=', 'domain=', 'join=', 'join_ns=', 'join_check='])
-    except getopt.GetoptError, e:
+                                       ['help',
+                                        'pass=',
+                                        'domain='
+                                        'realm=',
+                                        'join_ns='])
+    except getopt.GetoptError as e:
         usage(e)
 
-    realm = ""
+    interactive = False
     domain = ""
+    realm = ""
     admin_password = ""
-
-    join = "ask interactively"
-    join_nameserver = False
-    join_check = True
+    join_nameserver = ""
 
     for opt, val in opts:
         if opt in ('-h', '--help'):
@@ -85,93 +156,117 @@ def main():
         elif opt == '--pass':
             admin_password = val
         elif opt == '--realm':
-            realm = val
-            DEFAULT_DOMAIN = realm.split('.')[0].upper()
+            realm = validate_realm(val)
         elif opt == '--domain':
-            domain = val
-        elif opt == '--join':
-            if(val):
-                join = (val in ['true', 'True'])
+            domain = validate_domain(val)
         elif opt == '--join_ns':
             join_nameserver = val
-        elif opt == '--join_check':
-            if(val):
-                join_check = (val in ['true', 'True'])
 
-    while 1:
+    if ((not (realm and domain and admin_pass)) or
+            (join_nameserver and not valid_ip(join_nameserver)) or
+            TURNKEY_INIT):
+        interactive = True
 
-        if join == "ask interactively":
+    while True:
+        if TURNKEY_INIT:
+            d = Dialog('Turnkey Linux - First boot configuration')
+            do_it = d.yesno("Reconfigure Samba?",
+                            "Existing Samba config will be removed.\n\n"
+                            "Cancelling will leave existing config in place.\n"
+                            "\nContinue?", "Reconfigure", "Cancel")
+            if not do_it:
+                sys.exit(0)
+
+        if interactive and not join_nameserver:
             d = Dialog('Turnkey Linux - First boot configuration')
             join = d.yesno(
                 "Join existing AD?",
                 "You can create the Active Directory or join existing.",
                 "Join",
-                "Create")            
+                "Create")
 
         if not realm:
             d = Dialog('Turnkey Linux - First boot configuration')
             realm = d.get_input(
-                "Samba/Kerberos Realm",
-                "Enter realm you would like to use.",
+                "Samba Kerberos Realm / AD DNS zone".
+                "Kerberos Realm should be 2 or more groups of 63 or less"
+                " ASCII characters, separated by dot(s). Kerberos realm"
+                " will be stored as uppercase; DNS zone as"
+                " lowercase\n\n"
+                "Enter the Realm / DNS zone you would like to use.",
                 DEFAULT_REALM)
-            DEFAULT_DOMAIN = realm.split('.')[0].upper()    
+
+        if not admin_password:
+            d = Dialog('TurnKey Linux - First boot configuration')
+            admin_password = d.get_password(
+                    "Samba Password",
+                    "Enter password for the samba 'Administrator' account.",
+                    pass_req=8, min_complexity=3, blacklist=['(', ')'])
 
         if not domain:
             d = Dialog('TurnKey Linux - First boot configuration')
             domain = d.get_input(
-                "Samba Domain",
-                "Enter domain you would like to use.",
-                DEFAULT_DOMAIN)    
+                "Samba NetBIOS Domain (aka workgroup)",
+                "The NetBIOS domain (aka workgroup) should be 15 or less ASCII"
+                " characters.\n\n"
+                "Enter the NetBIOS domain (workgroup) you would like to use.",
+                DEFAULT_DOMAIN)
+            domain = domain.lower()
 
-        if not admin_password:
-            if 'd' not in locals():
-                d = Dialog('TurnKey Linux - First boot configuration')    
-
-            admin_password = d.get_password(
-                    "Samba Password",
-                    "Enter password for the samba 'administrator' account.",
-                    pass_req=8, min_complexity=3)    
-
-        if join and not join_nameserver:
+        if interactive and not valid_ip(join_nameserver):
             d = Dialog('Turnkey Linux - First boot configuration')
-            while 1:
-                retcode, join_nameserver = d.inputbox(
+            while True:
+                join_nameserver = d.inputbox(
                     "Add nameserver",
-                    "Set the DNS server IP and AD DNS domain in your /etc/resolv.conf.",
+                    "Set the DNS server IP and AD DNS domain in your"
+                    " /etc/resolv.conf.",
                     "",
-                    "Add",
-                    "Skip")    
-
-                if retcode == 1:
-                    join_nameserver = ""
-                    break    
+                    "Add")
 
                 if not valid_ip(join_nameserver):
                     d.error('IP is not valid.')
-                    continue    
+                    continue
 
-                if d.yesno("Is your DNS correct?", join_nameserver):
-                    break    
+        # Stop any Samba services
+        services = ['samba', 'samba-ad-dc', 'smbd', 'nmbd']
+        for service in services:
+            subprocess.run(['systemctl', 'stop', service])
+        # Remove Samba & Kerberos conf
+        rm_f('/etc/samba/smb.conf')
+        rm_f('/etc/krb5.conf')
+        # Remove Samab DBs
+        dirs = ['/var/run/samba', '/var/lib/samba',
+                '/var/cache/samba', '/var/lib/samba/private']
+        for _dir in dirs:
+            for _db_file in ['*.tdb', '*.ldb']:
+                rm_glod('/'.join([_dir, _db_file]))
 
-        if join:            
-            system('/usr/lib/inithooks/bin/sambaconf_join.sh -r {REALM} -d {DOMAIN} -u {ADMIN_USER} -p {ADMIN_PASSWORD} -n {NAME_SERVER} 2> /var/log/dc.log || true'.format(DOMAIN = domain, ADMIN_PASSWORD=admin_password, ADMIN_USER=ADMIN_USER, REALM=realm, NAME_SERVER=join_nameserver))
-            if  'ERROR' in open('/var/log/dc.log').read():                
-                if not join_check:
-                    break                    
-                system('mv /var/log/dc.log /var/log/dc.log_old')
-                d = Dialog('Turnkey Linux - First boot configuration')
-                d.error("Can't join a Samba DC to an Existing Active Directory.\nPlease check your input.")
-                realm = ""
-                domain = ""
-                admin_password = ""
-                join = False
-                join_nameserver = False
-                continue
+        if join_nameserver:
+            samba_domain = ['samba-tool', 'domain', 'join',
+                            realm, 'DC',
+                            '-U"{}\\Administrator"'.format(domain),
+                            '--password={}'.fomat(password),
+                            "--option='idmap_ldb:use rfc2307 = yes'"]
+        else:
+            samba_domain = ['samba-tool', 'domain', 'provision',
+                            '--server-role=dc', '--use-rfc2307',
+                            '--dns-backend=SAMBA_INTERNAL',
+                            '--realm={}'.format(realm),
+                            '--domain={}'.format(domain),
+                            '--adminpass={}'.format(admin_password),
+                            '--option="dns forwarder = 8.8.8.8"']
 
+        while True:
+            samba_run = subprocess.run(samba_domain, encoding='utf-8',
+                                       stdout=PIPE, stderr=PIPE)
+            if samba_run.returncode != 0:
+                if interactive:
+                    d = Dialog('Turnkey Linux - First boot configuration')
+                    retry = d.error("{}\n\nC"samba_run.stderr)
+                else:
+                    print("shizzle")
+                    sys.exit(1)
 
-        else:    
-            system('/usr/lib/inithooks/bin/sambaconf_add.sh -r {REALM} -d {DOMAIN} -u {ADMIN_USER} -p {ADMIN_PASSWORD} '.format(DOMAIN = domain, ADMIN_PASSWORD=admin_password, ADMIN_USER=ADMIN_USER, REALM=realm))
-        break
 
 if __name__ == "__main__":
     main()
