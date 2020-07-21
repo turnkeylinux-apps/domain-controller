@@ -7,17 +7,17 @@ Options:
     --pass=         AD domain 'Administrator' password.
                     Must not contain '(' or ')' characters.
                     If not provided, will ask interactively.
-    --realm=        AD Kerberos realm & AD DMS zone to create or join.
+    --realm=        AD Kerberos realm & AD DNS zone to create or join.
                     Realm will be uppercase and DNS zone will be lower case.
                     If not set will ask interactively.
                     DEFAULT=DOMAIN.LAN
     --domain=       NetBIOS domain (aka 'workgroup') to create or join.
                     If Realm and Domain are not set, will ask interactively.
                     If Realm set non-interactively, domain will be the first
-                    part of the domain, before the first period.
+                    part of the domain, before the first dot/period.
                     DEFAULT=DOMAIN
    --join_ns=       To join an existing domain, you must provide the IPv4 of
-                    nameserver to use.
+                    nameserver to use (plus the other 3 options).
                     If '--pass', '--realm' & '--domain' set, but not
                     '--join_ns", this script will create a new domain. If
                     '--pass' &/or '--realm' &/or '--domain' not set, will ask
