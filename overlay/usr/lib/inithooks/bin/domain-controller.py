@@ -53,7 +53,7 @@ import glob
 import getopt
 import socket
 import subprocess
-from subprocess import PIPE
+from subprocess import PIPE, STDOUT
 from string import digits, ascii_uppercase, ascii_lowercase, punctuation
 
 from dialog_wrapper import Dialog
@@ -61,6 +61,7 @@ from dialog_wrapper import Dialog
 
 ADMIN_USER = "administrator"
 DEFAULT_REALM = "DOMAIN.LAN"
+DEFAULT_DOMAIN = "DOMAIN"
 TURNKEY_INIT = os.getenv("_TURNKEY_INIT")
 
 
@@ -92,7 +93,7 @@ def fatal(s):
     sys.exit(1)
 
 
-def validate_ip(address):
+def valid_ip(address):
     try:
         socket.inet_aton(address)
         return address
@@ -105,7 +106,7 @@ def valiadate_realm(realm):
     if len(realm) > 255:
         return None
     for bit in realm.split(','):
-        if len(bit) < 0 or > 63:
+        if len(bit) < 0 or len(bit) > 63:
             return None
         if not bit.isalpha():
             return None
@@ -149,6 +150,7 @@ def main():
     realm = ""
     admin_password = ""
     join_nameserver = ""
+    join = ""
 
     for opt, val in opts:
         if opt in ('-h', '--help'):
@@ -162,10 +164,13 @@ def main():
         elif opt == '--join_ns':
             join_nameserver = val
 
-    if ((not (realm and domain and admin_pass)) or
+    if (
+            (not (realm and domain and admin_pass)) or
             (join_nameserver and not valid_ip(join_nameserver)) or
             TURNKEY_INIT):
         interactive = True
+    elif realm and domain and admin_pass and join_nameserver:
+        join_nameserver = valid_ip(join_nameserver)
 
     while True:
         if TURNKEY_INIT:
@@ -179,29 +184,24 @@ def main():
 
         if interactive and not join_nameserver:
             d = Dialog('Turnkey Linux - First boot configuration')
-            join = d.yesno(
-                "Join existing AD?",
-                "You can create the Active Directory or join existing.",
-                "Join",
-                "Create")
+            create = d.yesno(
+                "Create new AD or join existing?",
+                "You can create a new Active Directory or join an existing one.",
+                "Create",
+                "Join")
+            if not create:
+                join = "join"
 
         if not realm:
             d = Dialog('Turnkey Linux - First boot configuration')
             realm = d.get_input(
-                "Samba Kerberos Realm / AD DNS zone".
+                "Samba Kerberos Realm / AD DNS zone",
                 "Kerberos Realm should be 2 or more groups of 63 or less"
                 " ASCII characters, separated by dot(s). Kerberos realm"
                 " will be stored as uppercase; DNS zone as"
                 " lowercase\n\n"
                 "Enter the Realm / DNS zone you would like to use.",
                 DEFAULT_REALM)
-
-        if not admin_password:
-            d = Dialog('TurnKey Linux - First boot configuration')
-            admin_password = d.get_password(
-                    "Samba Password",
-                    "Enter password for the samba 'Administrator' account.",
-                    pass_req=8, min_complexity=3, blacklist=['(', ')'])
 
         if not domain:
             d = Dialog('TurnKey Linux - First boot configuration')
@@ -213,14 +213,20 @@ def main():
                 DEFAULT_DOMAIN)
             domain = domain.lower()
 
-        if interactive and not valid_ip(join_nameserver):
+        if not admin_password:
+            d = Dialog('TurnKey Linux - First boot configuration')
+            admin_password = d.get_password(
+                    "Samba Password",
+                    "Enter password for the samba 'Administrator' account.",
+                    pass_req=8, min_complexity=3, blacklist=['(', ')'])
+
+        if interactive and join == 'join':
             d = Dialog('Turnkey Linux - First boot configuration')
             while True:
                 join_nameserver = d.inputbox(
                     "Add nameserver",
-                    "Set the DNS server IP and AD DNS domain in your"
-                    " /etc/resolv.conf.",
-                    "",
+                    "Set the DNS server IP for your existing AD domain DNS server",
+                    join_nameserver,
                     "Add")
 
                 if not valid_ip(join_nameserver):
@@ -230,7 +236,7 @@ def main():
         # Stop any Samba services
         services = ['samba', 'samba-ad-dc', 'smbd', 'nmbd']
         for service in services:
-            subprocess.run(['systemctl', 'stop', service])
+            subprocess.run(['systemctl', 'stop', service], stderr=PIPE)
         # Remove Samba & Kerberos conf
         rm_f('/etc/samba/smb.conf')
         rm_f('/etc/krb5.conf')
@@ -239,7 +245,7 @@ def main():
                 '/var/cache/samba', '/var/lib/samba/private']
         for _dir in dirs:
             for _db_file in ['*.tdb', '*.ldb']:
-                rm_glod('/'.join([_dir, _db_file]))
+                rm_glob('/'.join([_dir, _db_file]))
 
         if join_nameserver:
             samba_domain = ['samba-tool', 'domain', 'join',
@@ -253,18 +259,30 @@ def main():
                             '--dns-backend=SAMBA_INTERNAL',
                             '--realm={}'.format(realm),
                             '--domain={}'.format(domain),
-                            '--adminpass={}'.format(admin_password),
-                            '--option="dns forwarder = 8.8.8.8"']
+                            '--adminpass={}'.format(admin_password)]
+#                            '--option="dns forwarder = 8.8.8.8"']
 
         while True:
-            samba_run = subprocess.run(samba_domain, encoding='utf-8',
-                                       stdout=PIPE, stderr=PIPE)
+            samba_run = subprocess.Popen(samba_domain, encoding='utf-8',
+                                         stdout=PIPE, stderr=STDOUT)
+            while True:
+                out = samba_run.stdout.read(1)
+                if out == '' and samba_run.poll() != None:
+                    break
+                if out != '':
+                    sys.stdout.write(out)
+                    sys.stdout.flush()
+
+            if create:
+                conf_file = '/var/samba/smb.conf'
+                # add DNS forwarder here....
+
             if samba_run.returncode != 0:
                 if interactive:
                     d = Dialog('Turnkey Linux - First boot configuration')
-                    retry = d.error("{}\n\nC"samba_run.stderr)
+                    retry = d.error("{}\n\n".format(samba_run.stderr))
                 else:
-                    print("shizzle")
+                    print("Errors in processing domain-controller inithook data.")
                     sys.exit(1)
 
 
