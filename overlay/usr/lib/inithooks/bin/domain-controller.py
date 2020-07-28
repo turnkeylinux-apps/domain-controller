@@ -259,32 +259,29 @@ def main():
                             '--dns-backend=SAMBA_INTERNAL',
                             '--realm={}'.format(realm),
                             '--domain={}'.format(domain),
-                            '--adminpass={}'.format(admin_password)]
-#                            '--option="dns forwarder = 8.8.8.8"']
+                            '--adminpass={}'.format(admin_password),
+                            '--option=dns forwarder=8.8.8.8']
 
+        samba_run = subprocess.Popen(samba_domain, encoding='utf-8',
+                     stdout=PIPE, stderr=STDOUT)
         while True:
-            samba_run = subprocess.Popen(samba_domain, encoding='utf-8',
-                                         stdout=PIPE, stderr=STDOUT)
-            while True:
-                out = samba_run.stdout.read(1)
-                if out == '' and samba_run.poll() != None:
-                    break
-                if out != '':
-                    sys.stdout.write(out)
-                    sys.stdout.flush()
+            out = samba_run.stdout.read(1)
+            if out == '' and samba_run.poll() != None:
+                break
+            if out != '':
+                sys.stdout.write(out)
+                sys.stdout.flush()
 
-            if create:
-                conf_file = '/var/samba/smb.conf'
-                # add DNS forwarder here....
-
-            if samba_run.returncode != 0:
-                if interactive:
-                    d = Dialog('Turnkey Linux - First boot configuration')
-                    retry = d.error("{}\n\n".format(samba_run.stderr))
-                else:
-                    print("Errors in processing domain-controller inithook data.")
-                    sys.exit(1)
-
+        if samba_run.returncode != 0:
+            if interactive:
+                d = Dialog('Turnkey Linux - First boot configuration')
+                retry = d.error("{}\n\n".format(samba_run.stderr))
+            else:
+                print("Errors in processing domain-controller inithook data.")
+                sys.exit(1)
+        else:
+            subprocess.run(['systemctl', 'start', 'samba-ad-dc'])
+            break
 
 if __name__ == "__main__":
     main()
