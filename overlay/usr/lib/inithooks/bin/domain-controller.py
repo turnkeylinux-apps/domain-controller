@@ -62,8 +62,6 @@ from dialog_wrapper import Dialog
 
 
 ADMIN_USER = "administrator"
-DEFAULT_REALM = "DOMAIN.LAN"
-DEFAULT_DOMAIN = "DOMAIN"
 TURNKEY_INIT = os.getenv("_TURNKEY_INIT")
 
 
@@ -103,23 +101,26 @@ def valid_ip(address):
         return False
 
 
-def valiadate_realm(realm):
+def validate_realm(realm):
     realm = realm.strip('.')
     if len(realm) > 255:
-        return None
+        fatal("Realm must be less than 255 characters.")
     for bit in realm.split(','):
         if len(bit) < 0 or len(bit) > 63:
-            return None
+            fatal("All realm segments must be greater than 0 and less than 63"
+                  " characters.")
         if not bit.isalpha():
-            return None
+            fatal("All realm segment characters must be alphanumberic.")
     return realm.upper()
 
 
-def valiadate_netbios(domain):
+def validate_netbios(domain):
     if len(domain) < 1 or len(domain) > 15:
-        return None
+        fatal("Netbios domain (aka workgroup) must be great than 1 and less"
+              " than 15 characters.")
     if not domain.isalpha():
-        return None
+        fatal("Netbios domain (aka workgroup) must only contain alphanumeric"
+              " characters.")
     return domain.upper()
 
 
@@ -139,14 +140,16 @@ def rm_glob(path):
 def run_command(command):
     proc = subprocess.Popen(command, encoding='utf-8',
                             stdout=PIPE, stderr=STDOUT)
+    output = []
     while True:
         out = proc.stdout.read(1)
         if out == '' and proc.poll() != None:
             break
         if out != '':
+            output.append(out)
             sys.stdout.write(out)
             sys.stdout.flush()
-    return proc
+    return proc.returncode, "".join(output)
 
 
 def update_resolvconf(domain):
@@ -187,6 +190,11 @@ def update_hosts(ip, hostname, domain):
 
 
 def main():
+
+    DEFAULT_REALM = "DOMAIN.LAN"
+    DEFAULT_DOMAIN = "DOMAIN"
+    DEFAULT_NS = ""
+
     try:
         opts, args = getopt.gnu_getopt(sys.argv[1:], "h",
                                        ['help',
@@ -202,7 +210,6 @@ def main():
     realm = ""
     admin_password = ""
     join_nameserver = ""
-    join = ""
 
     for opt, val in opts:
         if opt in ('-h', '--help'):
@@ -215,6 +222,7 @@ def main():
             domain = validate_domain(val)
         elif opt == '--join_ns':
             join_nameserver = val
+            DEFAULT_NS = join_nameserver
 
     if (
             (not (realm and domain and admin_pass)) or
@@ -276,15 +284,18 @@ def main():
         if interactive and not create:
             d = Dialog('Turnkey Linux - First boot configuration')
             while True:
-                join_nameserver = d.inputbox(
+                join_nameserver = d.get_input(
                     "Add nameserver",
                     "Set the DNS server IP for your existing AD domain DNS server",
-                    join_nameserver,
-                    "Add")
-
+                    DEFAULT_NS)
+                with open('/root/ns.txt', 'w') as fob:
+                    fob.write(join_nameserver)
                 if not valid_ip(join_nameserver):
-                    d.error('IP is not valid.')
+                    d.error("IP: '{}' is not valid.".format(join_nameserver))
+                    join_nameserver = ""
                     continue
+                else:
+                    break
 
         # Stop any Samba services
         services = ['samba', 'samba-ad-dc', 'smbd', 'nmbd']
@@ -293,7 +304,7 @@ def main():
         # Remove Samba & Kerberos conf
         rm_f('/etc/samba/smb.conf')
         rm_f('/etc/krb5.conf')
-        # Remove Samab DBs
+        # Remove Samba DBs
         dirs = ['/var/run/samba', '/var/lib/samba',
                 '/var/cache/samba', '/var/lib/samba/private']
         for _dir in dirs:
@@ -309,11 +320,11 @@ def main():
                             '--adminpass={}'.format(admin_password),
                             '--option=dns forwarder=8.8.8.8',
                             '--option=interfaces=127.0.0.1 {}'.format(NET_IP)]
-        else:
+        else:  # join
             samba_domain = ['samba-tool', 'domain', 'join',
                             realm, 'DC',
                             '-U"{}\\Administrator"'.format(domain),
-                            '--password={}'.fomat(password),
+                            '--password={}'.format(admin_password),
                             '--option=idmap_ldb:use rfc2307 = yes']
 
         set_expiry = ['samba-tool', 'user',
@@ -323,11 +334,19 @@ def main():
 
         finalize = False
         for samba_command in [samba_domain, set_expiry, export_krb]:
-            samba_run = run_command(samba_command)
-            if samba_run.returncode != 0:
+            samba_run_code, samba_run_out = run_command(samba_command)
+            if samba_run_code != 0:
                 if interactive:
                     d = Dialog('Turnkey Linux - First boot configuration')
-                    retry = d.error("{}\n\n".format(samba_run.stderr))
+                    retry = d.error("{}\n\n".format(samba_run_out))
+                    finalize = False
+                    DEFAULT_REALM = realm
+                    realm = ""
+                    DEFAULT_DOMAIN = domain
+                    domain = ""
+                    admin_password = ""
+                    DEFAULT_NS = join_nameserver
+                    join_nameserver = ""
                     break
                 else:
                     print("Errors in processing domain-controller inithook data.")
