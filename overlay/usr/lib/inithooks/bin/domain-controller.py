@@ -50,8 +50,10 @@ valid values via commandline will be asked.
 import sys
 import os
 import glob
+import shutil
 import getopt
 import socket
+import time
 import subprocess
 from subprocess import PIPE, STDOUT
 from string import digits, ascii_uppercase, ascii_lowercase, punctuation
@@ -134,6 +136,56 @@ def rm_glob(path):
         rm_f(file_path)
 
 
+def run_command(command):
+    proc = subprocess.Popen(command, encoding='utf-8',
+                            stdout=PIPE, stderr=STDOUT)
+    while True:
+        out = proc.stdout.read(1)
+        if out == '' and proc.poll() != None:
+            break
+        if out != '':
+            sys.stdout.write(out)
+            sys.stdout.flush()
+    return proc
+
+
+def update_resolvconf(domain):
+    resolvconf_head = '/etc/resolvconf/resolv.conf.d/head'
+    with open(resolvconf_head, 'r') as fob:
+         resolvconf = fob.readlines()
+    new_resolvconf = []
+    for line in resolvconf:
+         for term in ['search', 'domain']:
+             if line.startswith(term):
+                 line = '{} {}\n'.format(term, domain)
+         new_resolvconf.append(line)
+    with open(resolvconf_head, 'w') as fob:
+        fob.writelines(new_resolvconf)
+
+
+def update_hosts(ip, hostname, domain):
+    """This function assumes default layout of hosts file; many circumstance
+       may result in unexpected results. Only updates IPv4 results and will
+       remove existing IPv6 values for FQDN."""
+    fqdn = '.'.join([hostname, domain])
+    hostsfile = '/etc/hosts'
+    with open(hostsfile, 'r') as fob:
+         hosts = fob.readlines()
+    new_hosts = []
+    found = False
+    inserted = False
+    for line in hosts:
+        if fqdn in line:
+            line = ''
+        if found and not inserted:
+            new_hosts.append('{} {}'.format(ip, fqdn))
+            inserted = True
+        if line.startswith('127.0.1.1'):
+            found = True # insert entry for this machine next line
+        new_hosts.append(line)
+    return new_hosts
+
+
 def main():
     try:
         opts, args = getopt.gnu_getopt(sys.argv[1:], "h",
@@ -189,8 +241,8 @@ def main():
                 "You can create a new Active Directory or join an existing one.",
                 "Create",
                 "Join")
-            if not create:
-                join = "join"
+            if create:
+                create = True
 
         if not realm:
             d = Dialog('Turnkey Linux - First boot configuration')
@@ -202,6 +254,7 @@ def main():
                 " lowercase\n\n"
                 "Enter the Realm / DNS zone you would like to use.",
                 DEFAULT_REALM)
+            realm=realm.upper()
 
         if not domain:
             d = Dialog('TurnKey Linux - First boot configuration')
@@ -211,7 +264,7 @@ def main():
                 " characters.\n\n"
                 "Enter the NetBIOS domain (workgroup) you would like to use.",
                 DEFAULT_DOMAIN)
-            domain = domain.lower()
+            domain = domain.upper()
 
         if not admin_password:
             d = Dialog('TurnKey Linux - First boot configuration')
@@ -220,7 +273,7 @@ def main():
                     "Enter password for the samba 'Administrator' account.",
                     pass_req=8, min_complexity=3, blacklist=['(', ')'])
 
-        if interactive and join == 'join':
+        if interactive and not create:
             d = Dialog('Turnkey Linux - First boot configuration')
             while True:
                 join_nameserver = d.inputbox(
@@ -247,41 +300,57 @@ def main():
             for _db_file in ['*.tdb', '*.ldb']:
                 rm_glob('/'.join([_dir, _db_file]))
 
-        if join_nameserver:
-            samba_domain = ['samba-tool', 'domain', 'join',
-                            realm, 'DC',
-                            '-U"{}\\Administrator"'.format(domain),
-                            '--password={}'.fomat(password),
-                            "--option='idmap_ldb:use rfc2307 = yes'"]
-        else:
+        if create:
             samba_domain = ['samba-tool', 'domain', 'provision',
                             '--server-role=dc', '--use-rfc2307',
                             '--dns-backend=SAMBA_INTERNAL',
                             '--realm={}'.format(realm),
                             '--domain={}'.format(domain),
                             '--adminpass={}'.format(admin_password),
-                            '--option=dns forwarder=8.8.8.8']
-
-        samba_run = subprocess.Popen(samba_domain, encoding='utf-8',
-                     stdout=PIPE, stderr=STDOUT)
-        while True:
-            out = samba_run.stdout.read(1)
-            if out == '' and samba_run.poll() != None:
-                break
-            if out != '':
-                sys.stdout.write(out)
-                sys.stdout.flush()
-
-        if samba_run.returncode != 0:
-            if interactive:
-                d = Dialog('Turnkey Linux - First boot configuration')
-                retry = d.error("{}\n\n".format(samba_run.stderr))
-            else:
-                print("Errors in processing domain-controller inithook data.")
-                sys.exit(1)
+                            '--option=dns forwarder=8.8.8.8',
+                            '--option=interfaces=127.0.0.1 {}'.format(NET_IP)]
         else:
+            samba_domain = ['samba-tool', 'domain', 'join',
+                            realm, 'DC',
+                            '-U"{}\\Administrator"'.format(domain),
+                            '--password={}'.fomat(password),
+                            '--option=idmap_ldb:use rfc2307 = yes']
+
+        set_expiry = ['samba-tool', 'user',
+                      'setexpiry', ADMIN_USER, '--noexpiry']
+        export_krb = ['samba-tool', 'domain',
+                      'exportkeytab', '/etc/krb5.keytab']
+
+        finalize = False
+        for samba_command in [samba_domain, set_expiry, export_krb]:
+            samba_run = run_command(samba_command)
+            if samba_run.returncode != 0:
+                if interactive:
+                    d = Dialog('Turnkey Linux - First boot configuration')
+                    retry = d.error("{}\n\n".format(samba_run.stderr))
+                    break
+                else:
+                    print("Errors in processing domain-controller inithook data.")
+                    sys.exit(1)
+            else:
+                finalize = True
+                continue
+
+        if finalize:
+            os.chown('/etc/krb5.keytab', 0, 0)
+            os.chmod('/etc/krb5.keytab', 0o600)
+            shutil.copy2('/var/lib/samba/private/krb5.conf', '/etc/krb5.conf')
+            update_resolvconf(realm.lower())
+            subprocess.run(['systemctl', 'restart', 'resolvconf.service'])
+            update_hosts(NET_IP, HOSTNAME.lower(), realm.lower())
             subprocess.run(['systemctl', 'start', 'samba-ad-dc'])
+            while subprocess.run(['systemctl', 'is-active',
+                                  '--quiet', 'samba-ad-dc']).returncode != 0:
+                time.sleep(1)
+            subprocess.check_output(['kinit', ADMIN_USER],
+                            encoding='utf-8', input=admin_password)
             break
+
 
 if __name__ == "__main__":
     main()
