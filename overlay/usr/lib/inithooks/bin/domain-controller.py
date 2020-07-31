@@ -93,6 +93,13 @@ def fatal(s):
     sys.exit(1)
 
 
+def error_msg(msg, interactive):
+    if interactive:
+        return False, msg
+    else:
+        fatal(msg)
+
+
 def valid_ip(address):
     try:
         socket.inet_aton(address)
@@ -101,27 +108,41 @@ def valid_ip(address):
         return False
 
 
-def validate_realm(realm):
+def validate_realm(realm, interactive):
+    err = []
     realm = realm.strip('.')
     if len(realm) > 255:
-        fatal("Realm must be less than 255 characters.")
-    for bit in realm.split(','):
+        err = error_msg("Realm must be less than 255 characters.", interactive)
+    for bit in realm.split('.'):
         if len(bit) < 0 or len(bit) > 63:
-            fatal("All realm segments must be greater than 0 and less than 63"
-                  " characters.")
+            err = error_msg("All realm segments must be greater than 0 and"
+                            " less than 63 characters.",
+                            interactive)
         if not bit.isalpha():
-            fatal("All realm segment characters must be alphanumberic.")
-    return realm.upper()
+            open('/root/shiz', 'w').write(bit)
+            err = error_msg("All realm segment characters must be"
+                            " alphanumberic.",
+                            interactive)
+    if err:
+        return err
+    else:
+        return (realm.upper())
 
 
-def validate_netbios(domain):
+def validate_netbios(domain, interactive):
+    err = []
     if len(domain) < 1 or len(domain) > 15:
-        fatal("Netbios domain (aka workgroup) must be great than 1 and less"
-              " than 15 characters.")
+        err = error_msg("Netbios domain (aka workgroup) must be greater than 0"
+                        " and less than 15 characters (7+ recommend).",
+                        interactive)
     if not domain.isalpha():
-        fatal("Netbios domain (aka workgroup) must only contain alphanumeric"
-              " characters.")
-    return domain.upper()
+        err = error_msg("Netbios domain (aka workgroup) must only contain"
+                        " alphanumeric characters.",
+                        interactive)
+    if err:
+        return err
+    else:
+        return (domain.upper())
 
 
 def rm_f(path):
@@ -186,7 +207,8 @@ def update_hosts(ip, hostname, domain):
         if line.startswith('127.0.1.1'):
             found = True # insert entry for this machine next line
         new_hosts.append(line)
-    return new_hosts
+    with open(hostsfile, 'w') as fob:
+        fob.writelines(new_hosts)
 
 
 def main():
@@ -199,7 +221,7 @@ def main():
         opts, args = getopt.gnu_getopt(sys.argv[1:], "h",
                                        ['help',
                                         'pass=',
-                                        'domain='
+                                        'domain=',
                                         'realm=',
                                         'join_ns='])
     except getopt.GetoptError as e:
@@ -217,20 +239,25 @@ def main():
         elif opt == '--pass':
             admin_password = val
         elif opt == '--realm':
-            realm = validate_realm(val)
+            realm = val
         elif opt == '--domain':
-            domain = validate_domain(val)
+            domain = val
         elif opt == '--join_ns':
             join_nameserver = val
             DEFAULT_NS = join_nameserver
 
     if (
-            (not (realm and domain and admin_pass)) or
+            (not (realm and domain and admin_password)) or
             (join_nameserver and not valid_ip(join_nameserver)) or
             TURNKEY_INIT):
         interactive = True
-    elif realm and domain and admin_pass and join_nameserver:
+        if join_nameserver:
+            create = False
+    elif realm and domain and admin_password and join_nameserver:
         join_nameserver = valid_ip(join_nameserver)
+        create = False
+    elif realm and domain and admin_password and not join_nameserver:
+        create = True
 
     while True:
         if TURNKEY_INIT:
@@ -253,26 +280,42 @@ def main():
                 create = True
 
         if not realm:
-            d = Dialog('Turnkey Linux - First boot configuration')
-            realm = d.get_input(
-                "Samba Kerberos Realm / AD DNS zone",
-                "Kerberos Realm should be 2 or more groups of 63 or less"
-                " ASCII characters, separated by dot(s). Kerberos realm"
-                " will be stored as uppercase; DNS zone as"
-                " lowercase\n\n"
-                "Enter the Realm / DNS zone you would like to use.",
-                DEFAULT_REALM)
-            realm=realm.upper()
+            while True:
+                d = Dialog('Turnkey Linux - First boot configuration')
+                realm = d.get_input(
+                    "Samba Kerberos Realm / AD DNS zone",
+                    "Kerberos Realm should be 2 or more groups of 63 or less"
+                    " ASCII characters, separated by dot(s). Kerberos realm"
+                    " will be stored as uppercase; DNS zone as"
+                    " lowercase\n\n"
+                    "Enter the Realm / DNS zone you would like to use.",
+                    DEFAULT_REALM)
+                realm = validate_realm(realm, interactive)
+                if realm[0]:
+                    break
+                else:
+                    d.error(realm[1])
+                    continue
+        else:
+            realm = validate_realm(realm, interactive)
 
         if not domain:
-            d = Dialog('TurnKey Linux - First boot configuration')
-            domain = d.get_input(
-                "Samba NetBIOS Domain (aka workgroup)",
-                "The NetBIOS domain (aka workgroup) should be 15 or less ASCII"
-                " characters.\n\n"
-                "Enter the NetBIOS domain (workgroup) you would like to use.",
-                DEFAULT_DOMAIN)
-            domain = domain.upper()
+            while True:
+                d = Dialog('TurnKey Linux - First boot configuration')
+                domain = d.get_input(
+                    "Samba NetBIOS Domain (aka workgroup)",
+                    "The NetBIOS domain (aka workgroup) should be 15 or less"
+                    " ASCII characters.\n\n"
+                    "Enter the NetBIOS domain (workgroup) you would like to use.",
+                    DEFAULT_DOMAIN)
+                domain = validate_netbios(domain, interactive)
+                if domain[0]:
+                    break
+                else:
+                    d.error(domain[1])
+                    continue
+        else:
+            domain = validate_netbios(domain, interactive)
 
         if not admin_password:
             d = Dialog('TurnKey Linux - First boot configuration')
@@ -288,8 +331,6 @@ def main():
                     "Add nameserver",
                     "Set the DNS server IP for your existing AD domain DNS server",
                     DEFAULT_NS)
-                with open('/root/ns.txt', 'w') as fob:
-                    fob.write(join_nameserver)
                 if not valid_ip(join_nameserver):
                     d.error("IP: '{}' is not valid.".format(join_nameserver))
                     join_nameserver = ""
@@ -349,11 +390,10 @@ def main():
                     join_nameserver = ""
                     break
                 else:
-                    print("Errors in processing domain-controller inithook data.")
-                    sys.exit(1)
+                    fatal("Errors in processing domain-controller inithook"
+                          " data.")
             else:
                 finalize = True
-                continue
 
         if finalize:
             os.chown('/etc/krb5.keytab', 0, 0)
@@ -368,6 +408,15 @@ def main():
                 time.sleep(1)
             subprocess.check_output(['kinit', ADMIN_USER],
                             encoding='utf-8', input=admin_password)
+            msg = "\nPlease ensure that you have set a static IP. If you" \
+                  " haven't already, please ensure that you do that ASAP," \
+                  " and update IP addresses in DNS and hosts file (please" \
+                  " see docs for more info)."
+            if interactive:
+                d = Dialog('Turnkey Linux - First boot configuration')
+                d.infobox(msg)
+            else:
+                print(msg)
             break
 
 
