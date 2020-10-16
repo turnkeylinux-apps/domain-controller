@@ -164,7 +164,7 @@ def run_command(command):
     output = []
     while True:
         out = proc.stdout.read(1)
-        if out == '' and proc.poll() != None:
+        if out == '' and proc.poll() is not None:
             break
         if out != '':
             output.append(out)
@@ -176,13 +176,13 @@ def run_command(command):
 def update_resolvconf(domain):
     resolvconf_head = '/etc/resolvconf/resolv.conf.d/head'
     with open(resolvconf_head, 'r') as fob:
-         resolvconf = fob.readlines()
+        resolvconf = fob.readlines()
     new_resolvconf = []
     for line in resolvconf:
-         for term in ['search', 'domain']:
-             if line.startswith(term):
-                 line = '{} {}\n'.format(term, domain)
-         new_resolvconf.append(line)
+        for term in ['search', 'domain']:
+            if line.startswith(term):
+                line = '{} {}\n'.format(term, domain)
+        new_resolvconf.append(line)
     with open(resolvconf_head, 'w') as fob:
         fob.writelines(new_resolvconf)
 
@@ -194,7 +194,7 @@ def update_hosts(ip, hostname, domain):
     fqdn = '.'.join([hostname, domain])
     hostsfile = '/etc/hosts'
     with open(hostsfile, 'r') as fob:
-         hosts = fob.readlines()
+        hosts = fob.readlines()
     new_hosts = []
     found = False
     inserted = False
@@ -205,7 +205,7 @@ def update_hosts(ip, hostname, domain):
             new_hosts.append('{} {}'.format(ip, fqdn))
             inserted = True
         if line.startswith('127.0.1.1'):
-            found = True # insert entry for this machine next line
+            found = True  # insert entry for this machine next line
         new_hosts.append(line)
     with open(hostsfile, 'w') as fob:
         fob.writelines(new_hosts)
@@ -252,7 +252,7 @@ def main():
             TURNKEY_INIT):
         interactive = True
         if join_nameserver:
-            create = False
+            create = True
     elif realm and domain and admin_password and join_nameserver:
         join_nameserver = valid_ip(join_nameserver)
         create = False
@@ -273,7 +273,7 @@ def main():
             d = Dialog('Turnkey Linux - First boot configuration')
             create = d.yesno(
                 "Create new AD or join existing?",
-                "You can create a new Active Directory or join an existing one.",
+                "You can create new Active Directory or join existing one.",
                 "Create",
                 "Join")
             if create:
@@ -306,7 +306,7 @@ def main():
                     "Samba NetBIOS Domain (aka workgroup)",
                     "The NetBIOS domain (aka workgroup) should be 15 or less"
                     " ASCII characters.\n\n"
-                    "Enter the NetBIOS domain (workgroup) you would like to use.",
+                    "Enter NetBIOS domain (aka 'WORKGROUP') to use.",
                     DEFAULT_DOMAIN)
                 domain = validate_netbios(domain, interactive)
                 if domain[0]:
@@ -329,7 +329,7 @@ def main():
             while True:
                 join_nameserver = d.get_input(
                     "Add nameserver",
-                    "Set the DNS server IP for your existing AD domain DNS server",
+                    "Set DNS server IPv4 for existing AD domain DNS server",
                     DEFAULT_NS)
                 if not valid_ip(join_nameserver):
                     d.error("IP: '{}' is not valid.".format(join_nameserver))
@@ -407,7 +407,8 @@ def main():
                                   '--quiet', 'samba-ad-dc']).returncode != 0:
                 time.sleep(1)
             subprocess.check_output(['kinit', ADMIN_USER],
-                            encoding='utf-8', input=admin_password)
+                                    encoding='utf-8',
+                                    input=admin_password)
             msg = "\nPlease ensure that you have set a static IP. If you" \
                   " haven't already, please ensure that you do that ASAP," \
                   " and update IP addresses in DNS and hosts file (please" \
