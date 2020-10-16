@@ -1,3 +1,14 @@
+turnkey-domain-controller-16.0 (1) turnkey; urgency=low
+
+  * Update packages to latest Debian Buster versions; including Samba v4.9.5.
+
+  * Major rewrite of python inithook amd removal of old bash inithook scripts.
+
+  * Note: Please refer to turnkey-core's changelog for changes common to all
+    appliances. Here we only describe changes specific to this appliance.
+
+ -- Jeremy Davis <jeremy@turnkeylinux.org>  Fri, 16 Oct 2020 15:55:43 +1100
+
 turnkey-domain-controller-15.0 (1) turnkey; urgency=low
 
   * Initialization (specific to domain-controller - via inithooks):

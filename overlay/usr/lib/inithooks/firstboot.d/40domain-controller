@@ -5,23 +5,19 @@
 
 [ -e $INITHOOKS_CONF ] && . $INITHOOKS_CONF
 
-# support partially preseeded headless deployments
+# support partially preseeded headless deployments by generating APP_REALM
 if [ -z "$APP_REALM" ]; then
     if [ -n "$APP_PASS" ] && [ -n "$APP_DOMAIN" ]; then
         APP_REALM="$APP_DOMAIN.lan"
     fi
 fi
 
-if [ -z "$APP_JOIN" ] || [ -z "$APP_JOIN_NS" ]; then
-    if [ -n "$APP_PASS" ] && [ -n "$APP_DOMAIN" ]; then
-        APP_JOIN="False"
-    fi
-fi
+# If APP_DOMAIN & APP_PASS are preseeded (but not APP_REALM) then APP_REALM
+# generated as per above.
+# If APP_DOMAIN, APP_PASS and APP_REALM are passed to domain-controller.py;
+# then it will run non-interactively and will create a new domain.
+# If APP_JOIN_NS is also set, then it will try to join an existing domain.
+#
+# For more info see './domain-controller.py --help'
 
-# Do not interact with the user if Samba can`t join existing domain (when working in headless mode)
-if [ -n "$APP_PASS" ] && [ -n "$APP_DOMAIN" ]; then
-    APP_JOIN_CHECK="False"
-fi
-
-$INITHOOKS_PATH/bin/domain-controller.py --domain="$APP_DOMAIN" --realm="$APP_REALM" --pass="$APP_PASS" --join="$APP_JOIN" --join_ns="$APP_JOIN_NS" --join_check="$APP_JOIN_CHECK"
-
+$INITHOOKS_PATH/bin/domain-controller.py --domain="$APP_DOMAIN" --realm="$APP_REALM" --pass="$APP_PASS" --join_ns="$APP_JOIN_NS"
