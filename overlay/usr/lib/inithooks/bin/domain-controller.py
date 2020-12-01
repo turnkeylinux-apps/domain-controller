@@ -119,7 +119,6 @@ def validate_realm(realm, interactive):
                             " less than 63 characters.",
                             interactive)
         if not bit.isalnum():
-            open('/root/shiz', 'w').write(bit)
             err = error_msg("All realm segment characters must be"
                             " alphanumeric.",
                             interactive)
