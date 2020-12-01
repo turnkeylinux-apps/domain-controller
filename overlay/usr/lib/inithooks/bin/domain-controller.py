@@ -118,10 +118,9 @@ def validate_realm(realm, interactive):
             err = error_msg("All realm segments must be greater than 0 and"
                             " less than 63 characters.",
                             interactive)
-        if not bit.isalpha():
-            open('/root/shiz', 'w').write(bit)
+        if not bit.isalnum() or not bit[0].isalpha():
             err = error_msg("All realm segment characters must be"
-                            " alphanumberic.",
+                            " alphanumeric and must start with a letter.",
                             interactive)
     if err:
         return err
@@ -135,9 +134,9 @@ def validate_netbios(domain, interactive):
         err = error_msg("Netbios domain (aka workgroup) must be greater than 0"
                         " and less than 15 characters (7+ recommend).",
                         interactive)
-    if not domain.isalpha():
+    if not domain.isalnum() or not domain[0].isalpha():
         err = error_msg("Netbios domain (aka workgroup) must only contain"
-                        " alphanumeric characters.",
+                        " alphanumeric characters and start with a letter.",
                         interactive)
     if err:
         return err
