@@ -14,10 +14,10 @@ Options:
     --domain=       NetBIOS domain (aka 'workgroup') to create or join.
                     If Realm and Domain are not set, will ask interactively.
                     If Realm set non-interactively, domain will be the first
-                    part of the domain, before the first dot/period.
+                    part of the realm, before the first dot/period.
                     DEFAULT=DOMAIN
    --join_ns=       To join an existing domain, you must provide the IPv4 of
-                    nameserver to use (plus the other 3 options).
+                    the nameserver to use (plus the other 3 options).
                     If '--pass', '--realm' & '--domain' set, but not
                     '--join_ns", this script will create a new domain. If
                     '--pass' &/or '--realm' &/or '--domain' not set, will ask
