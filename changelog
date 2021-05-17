@@ -1,3 +1,15 @@
+turnkey-domain-controller-16.1 (1) turnkey; urgency=low
+
+  * Refactor of Domain Controller specific inithook (domain-controller.py) to
+    make 'join' functionality work.
+
+  * Rebuild on latest Debian Buster.
+
+  * Note: Please refer to turnkey-core's 16.1 changelog for changes common to all
+    appliances. Here we only describe changes specific to this appliance.
+
+ -- Jeremy Davis <jeremy@turnkeylinux.org>  Mon, 17 May 2021 15:58:41 +1000
+
 turnkey-domain-controller-16.0 (1) turnkey; urgency=low
 
   * Update packages to latest Debian Buster versions; including Samba v4.9.5.
