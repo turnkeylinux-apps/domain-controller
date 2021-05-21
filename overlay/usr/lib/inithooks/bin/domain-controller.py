@@ -207,21 +207,20 @@ def run_command(command, stdin=False):
     return proc.returncode, output
 
 
-def update_resolvconf(domain, nameserver=None):
+def update_resolvconf(domain, nameserver):
     shutil.copy2(RESOLVCNF_HEAD, RESOLVCNF_BAK)
     with open(RESOLVCNF_HEAD, 'r') as fob:
         resolvconf = fob.readlines()
     new_resolvconf = []
-    terms = ['search', 'domain']
-    if nameserver:
-        terms.insert(0, 'nameserver')
+    terms = ['nameserver', 'search', 'domain']
     for line in resolvconf:
         for term in terms:
             if line.startswith(term):
                 if term == 'nameserver':
-                    line = '{}\nnameserver {}\n'.format(line, nameserver)
+                    value = nameserver
                 else:
-                    line = '{} {}\n'.format(term, domain)
+                    value = domain
+                line = '{} {}\n'.format(term, value)
         new_resolvconf.append(line)
     with open(RESOLVCNF_HEAD, 'w') as fob:
         fob.writelines(new_resolvconf)
@@ -480,6 +479,7 @@ def main():
                             '--option=dns forwarder=8.8.8.8',
                             '--option=interfaces=127.0.0.1 {}'.format(NET_IP)]
             commands = [samba_domain, set_expiry, export_krb]
+            nameserver = '127.0.0.1'
         else:  # join
             with open('/etc/krb5.conf', 'w') as fob:
                 fob.write('[libdefaults]\n')
@@ -493,10 +493,11 @@ def main():
                             realm.lower(), 'DC',
                             "--option='idmap_ldb:use rfc2307 = yes'"]
             commands = [config_krb, samba_domain, export_krb]
+            nameserver = join_nameserver
 
         finalize = False
         # some initial set up required when joining
-        update_resolvconf(realm.lower())
+        update_resolvconf(realm.lower(), nameserver)
         update_hosts(None, HOSTNAME, domain)
         if ip:
             update_hosts(ip, HOSTNAME, domain)
