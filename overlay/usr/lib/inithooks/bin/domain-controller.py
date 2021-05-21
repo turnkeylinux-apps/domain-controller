@@ -32,8 +32,8 @@ Options:
                     interactively.
                     If '--join_ns' & '--hostname' set, but '--hostname' is not
                     valid, will ask interactively.
-                    If '--join_ns' not set, but 'hostname=' is, then 'hostname='
-                    will be ignored.
+                    If '--join_ns' not set, but 'hostname=' is, then
+                    'hostname=' will be ignored.
                     DEFAULT=dc2 # only if joining a domain and run
                     interactively.
 
@@ -134,8 +134,8 @@ def validate_realm(realm, interactive):
 def validate_netbios(domain, interactive):
     err = []
     if len(domain) < 1 or len(domain) > 15:
-        return error_msg("Netbios domain (aka workgroup) must be greater than 0"
-                         " and less than 15 characters (7+ recommend).",
+        return error_msg("Netbios domain (aka workgroup) must be greater than"
+                         " 0 and less than 15 characters (7+ recommend).",
                          interactive)
     if not domain.isalnum() or not domain[0].isalpha():
         return error_msg("Netbios domain (aka workgroup) must only contain"
@@ -157,11 +157,6 @@ def check_dns(fqdn):
     if proc.returncode == 0:
         return True
     return False
-
-
-def get_hostname():
-    return subprocess.run(['hostname', '-s'],
-                          encoding='utf-8', stdout=PIPE).stdout.strip()
 
 
 def validate_hostname(hostname, domain, interactive, default):
@@ -230,7 +225,8 @@ def run_command(command, stdin=False):
 def update_resolvconf(domain, nameserver, interactive):
     if not ping_client(nameserver):
         return error_msg(
-                "No client is responding to ping at ip address {}.".format(nameserver),
+                "No client is responding to ping at ip address {}."
+                "".format(nameserver),
                 interactive)
     shutil.copy2(RESOLVCNF_HEAD, RESOLVCNF_BAK)
     with open(RESOLVCNF_HEAD, 'r') as fob:
@@ -302,17 +298,16 @@ def main():
                             encoding='utf-8', stdout=PIPE).stdout.strip()
 
     # disabled for now, will reimplment at some point...
-    #NET_IP321 = NET_IP.split('.')[:-1]
-    #NET_IP321.reverse()
-    #NET_IP321 = '.'.join(NET_IP321)
-    #NET_IP4 = NET_IP.split('.')[-1]
+    # NET_IP321 = NET_IP.split('.')[:-1]
+    # NET_IP321.reverse()
+    # NET_IP321 = '.'.join(NET_IP321)
+    # NET_IP4 = NET_IP.split('.')[-1]
 
     DEFAULT_HOSTNAME = "dc1"
     DEFAULT_REALM = "DOMAIN.LAN"
     DEFAULT_DOMAIN = "DOMAIN"
     DEFAULT_NS = ""
     DEFAULT_NEW_HOSTNAME = "dc2"
-
 
     try:
         opts, args = getopt.gnu_getopt(sys.argv[1:], "h",
@@ -350,7 +345,7 @@ def main():
     if (
             (not (realm and domain and admin_password)) or
             (join_nameserver and not valid_ip(join_nameserver) or
-            (join_nameserver and not hostname))
+                (join_nameserver and not hostname))
             or TURNKEY_INIT):
         interactive = True
         if join_nameserver:
@@ -358,7 +353,8 @@ def main():
     elif realm and domain and admin_password and join_nameserver and hostname:
         join_nameserver = valid_ip(join_nameserver)
         update_resolvconf(realm.lower(), join_nameserver, interactive)
-        hostname = validate_hostname(hostname, realm, interactive, DEFAULT_HOSTNAME)
+        hostname = validate_hostname(hostname, realm,
+                                     interactive, DEFAULT_HOSTNAME)
         if join_nameserver and hostname[0]:  # both valid
             create = False
         elif join_nameserver:  # invalid hostname
@@ -455,15 +451,15 @@ def main():
                 while True:
                     join_nameserver = d.get_input(
                         "Add nameserver",
-                        "Set DNS server IPv4 for existing AD domain DNS server",
+                        "Set DNS server IPv4 for existing AD domain DNS"
+                        " server",
                         DEFAULT_NS)
                     if not valid_ip(join_nameserver):
-                        d.error("IP: '{}' is not valid.".format(join_nameserver))
+                        d.error("IP: '{}' not valid.".format(join_nameserver))
                         join_nameserver = ""
                         continue
                     else:
                         break
-            # set up nameserver now, so we can check for existing client hostname
             update_resolvconf(realm.lower(), join_nameserver, interactive)
             if not hostname:
                 while True:
@@ -471,7 +467,8 @@ def main():
                         "Set new hostname",
                         "Set new unique hostname for this domain-controller.",
                         DEFAULT_NEW_HOSTNAME)
-                    hostname = validate_hostname(hostname, realm.lower(), interactive, DEFAULT_HOSTNAME)
+                    hostname = validate_hostname(hostname, realm.lower(),
+                                                 interactive, DEFAULT_HOSTNAME)
                     if not hostname[0]:
                         d.error(hostname[1])
                         continue
@@ -573,7 +570,8 @@ def main():
                                 lines_to_print.append(line)
                             continue
                     lines_to_print.append('')
-                    lines_to_print.append("See {} for full output".format(COMMAND_LOG))
+                    lines_to_print.append(
+                            "See {} for full output".format(COMMAND_LOG))
                     retry = d.error("{}\n\n".format('\n'.join(lines_to_print)))
                     finalize = False
                     DEFAULT_REALM = realm
