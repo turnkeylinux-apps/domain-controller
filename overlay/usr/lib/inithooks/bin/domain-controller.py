@@ -202,13 +202,11 @@ def rm_glob(path):
 def run_command(command, stdin=False):
     if not command:
         return 0, None
+    proc = subprocess.Popen(command, text=True, stdin=PIPE if stdin else None,
+                            stdout=PIPE, stderr=STDOUT)
     if stdin:
-        proc = subprocess.Popen(command, text=True, stdin=PIPE,
-                                stdout=PIPE, stderr=STDOUT)
         output = proc.communicate(input=stdin)[0]
     else:
-        proc = subprocess.Popen(command, text=True,
-                                stdout=PIPE, stderr=STDOUT)
         output = []
         while True:
             out = proc.stdout.read(1)
@@ -436,10 +434,7 @@ def main():
 
         if not admin_password:
             d = Dialog('TurnKey Linux - First boot configuration')
-            if create:
-                server_status = 'new'
-            else:
-                server_status = 'existing'
+            server_status = 'new' if create else 'existing'
             admin_password = d.get_password(
                     "Samba Password",
                     "Enter password for the {} samba Domain 'Administrator'"
