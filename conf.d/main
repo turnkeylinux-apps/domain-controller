@@ -26,3 +26,9 @@ systemctl disable winbind.service
 # enable samba-ad-dc service
 systemctl unmask samba-ad-dc
 systemctl enable samba-ad-dc
+
+# adjust Webmin so it uses the correct service
+webmin_conf=/etc/webmin/samba/config
+for comm in start restart stop; do
+    sed -i "\|^${comm}_cmd=| s|=.*|=service samba-ad-dc ${comm}|" webmin_conf
+done
