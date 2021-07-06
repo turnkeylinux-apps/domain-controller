@@ -1,3 +1,12 @@
+turnkey-domain-controller-16.2 (UNRELEASED) turnkey; urgency=low
+
+  * UPDATE VERSION AS APPROPRIATE AND REPLACE THIS ENTRY PRIOR TO RELEASE!
+
+  * Adjust service name that Webmin "Start/Stop/Restart Samba" buttons use.
+    Closes #1618.
+
+ -- Jeremy Davis <jeremy@turnkeylinux.org>  Tue, 01 Jun 2021 09:19:24 +1000
+
 turnkey-domain-controller-16.1 (1) turnkey; urgency=low
 
   * Refactor of Domain Controller specific inithook (domain-controller.py) to
