@@ -1,5 +1,10 @@
-#!/bin/bash
+#!/bin/bash -e
+
 #Juan  https://j20003.es
+#
+# Copy/pasted from
+# https://www.turnkeylinux.org/forum/support/mon-20210517-0129/domain-controller#comment-50270
+
 HEIGHT=15
 WIDTH=50
 CHOICE_HEIGHT=8
