@@ -52,13 +52,13 @@ clear
 case $CHOICE in
     1)
  #####################Change password options of Domain#################################
-exec 3>&1
+ exec 3>&1
 
-# Store data to $VALUES variable
-VALUES=$(dialog --ok-label "Submit" \
-      --backtitle "" \
-      --title "Default Settings Passwords" \
-      --form "\nCan Change this Settings Passwords" \
+ # Store data to $VALUES variable
+ VALUES=$(dialog --ok-label "Submit" \
+                 --backtitle "" \
+                 --title "Default Settings Passwords" \
+                 --form "\nCan Change this Settings Passwords" \
 0 0 0 \
     "Define_complexity?"        1 1 "off" 1 26 6 0 \
     "Change_password_history"       2 1 "3"   2 26 6 0 \
@@ -67,264 +67,230 @@ VALUES=$(dialog --ok-label "Submit" \
     "password_expiration_time"      5 1 "0"   5 26 6 0 \
 2>&1 1>&3)
 
-exec 3>&-
+ exec 3>&-
 
-complexity=$(echo "$VALUES" | sed -n 1p)
-historylength=$(echo "$VALUES" | sed -n 2p)
-minpwdlength=$(echo "$VALUES" | sed -n 3p)
-minpwdage=$(echo "$VALUES" | sed -n 4p)
-maxpwdage=$(echo "$VALUES" | sed -n 5p)
+ complexity=$(echo "$VALUES" | sed -n 1p)
+ historylength=$(echo "$VALUES" | sed -n 2p)
+ minpwdlength=$(echo "$VALUES" | sed -n 3p)
+ minpwdage=$(echo "$VALUES" | sed -n 4p)
+ maxpwdage=$(echo "$VALUES" | sed -n 5p)
 
-samba-tool domain passwordsettings set --complexity=$complexity
-samba-tool domain passwordsettings set --history-length=$historylength
-samba-tool domain passwordsettings set --min-pwd-length=$minpwdlength
-samba-tool domain passwordsettings set --min-pwd-age=$minpwdage
-samba-tool domain passwordsettings set --max-pwd-age=$maxpwdage
-smbcontrol all reload-config
+ samba-tool domain passwordsettings set --complexity="$complexity"
+ samba-tool domain passwordsettings set --history-length="$historylength"
+ samba-tool domain passwordsettings set --min-pwd-length="$minpwdlength"
+ samba-tool domain passwordsettings set --min-pwd-age="$minpwdage"
+ samba-tool domain passwordsettings set --max-pwd-age="$maxpwdage"
+ smbcontrol all reload-config
 
-#samba-tool domain passwordsettings show
+ #samba-tool domain passwordsettings show
 
-passwordset=$(samba-tool domain passwordsettings show)
+ passwordset=$(samba-tool domain passwordsettings show)
 
     (dialog --title "Settings Passwords" \
-    --stdout \
-    --msgbox "$passwordset" 0 0 )
+            --stdout \
+            --msgbox "$passwordset" 0 0 )
 
-turnkey-dc-conf
+ turnkey-dc-conf
  ;;
 
         2)
  #######################List Domain Users########################
  users=$(samba-tool user list)
     (dialog --title "Users list" \
-    --stdout \
-    --msgbox "$users" 0 0 )
+            --stdout \
+            --msgbox "$users" 0 0 )
  turnkey-dc-conf
-;;
-
+ ;;
 
         3)
  ######################Add New Domain Admin################################
-  answer=$(dialog --title "Add New Admin Domain"                  \
-                   --separate-widget $"\n"               \
-                   --form  ""         \
+ answer=$(dialog --title "Add New Admin Domain"                  \
+                 --separate-widget $"\n"               \
+                 --form  ""         \
                    0 0 0                                 \
                    "Name:"   1 1 "$name" 1 10 20 0 \
-                   "Password:" 2 1 "versalles" 2 10 20 0 $name \
+                   "Password:" 2 1 "versalles" 2 10 20 0 "$name" \
                    "Surname:"    3 1 "Domain user" 3 10 20 0 \
                    3>&1 1>&2 2>&3 3>&-)
 
-name=$(echo "$answer" | sed -n 1p)
-password=$(echo "$answer" | sed -n 2p)
-surname=$(echo "$answer" | sed -n 3p)
+ name=$(echo "$answer" | sed -n 1p)
+ password=$(echo "$answer" | sed -n 2p)
+ surname=$(echo "$answer" | sed -n 3p)
 
-samba-tool user create $name $password --given-name="$name" --surname="$surname" &&
-samba-tool group addmembers "administrators" $name &&
-samba-tool group addmembers "Domain Admins" $name &&
-samba-tool group addmembers "Domain Admins" $name &&
-samba-tool group addmembers "enterprise admins" $name &&
-samba-tool group addmembers "group policy creator owners" $name
-smbcontrol all reload-config
-turnkey-dc-conf
+ samba-tool user create "$name" $password --given-name="$name" --surname="$surname"
+ samba-tool group addmembers "administrators" "$name"
+ samba-tool group addmembers "Domain Admins" "$name"
+ samba-tool group addmembers "Domain Admins" "$name"
+ samba-tool group addmembers "enterprise admins" "$name"
+ samba-tool group addmembers "group policy creator owners" "$name"
+ smbcontrol all reload-config
+ turnkey-dc-conf
  ;;
 
     4)
  ########################Add Domain User##############################
 
-  answer=$(dialog --title "Add New Admin Domain"                  \
-                   --separate-widget $"\n"               \
-                   --form  ""         \
+ answer=$(dialog --title "Add New Admin Domain"                  \
+                 --separate-widget $"\n"               \
+                 --form  ""         \
                    0 0 0                                 \
                    "Name:"   1 1 "$name" 1 10 20 0 \
-                   "Password:" 2 1 "versalles" 2 10 20 0 $name \
+                   "Password:" 2 1 "versalles" 2 10 20 0 "$name" \
                    "Surname:"    3 1 "Domain user" 3 10 20 0 \
                    3>&1 1>&2 2>&3 3>&-)
 
-name=$(echo "$answer" | sed -n 1p)
-password=$(echo "$answer" | sed -n 2p)
-surname=$(echo "$answer" | sed -n 3p)
+ name=$(echo "$answer" | sed -n 1p)
+ password=$(echo "$answer" | sed -n 2p)
+ surname=$(echo "$answer" | sed -n 3p)
 
-name2=""
-usersdc=$(samba-tool user list | grep $name )
+ name2=""
+ usersdc=$(samba-tool user list | grep "$name" )
 
-if [ $name = $name2 ]
+ if [[ "$name" == "$name2" ]]; then
+    (dialog --title "ERROR" \
+            --stdout \
+            --msgbox "Variable is empty\nWrite a name valid" 0 0 )
 
-        then
-        (dialog --title "ERROR" \
-        --stdout \
-        --msgbox "Variable is empty\nWrite a name valid" 0 0 )
+ elif [[ "$name" == "$usersdc" ]]; then
+    (dialog --title "ERROR" \
+            --stdout \
+            --msgbox "The user exist \nWrite a new name" 0 0 )
 
-elif [ $name = $usersdc ]
-
-        then
-        (dialog --title "ERROR" \
-        --stdout \
-        --msgbox "The user exist \nWrite a new name" 0 0 )
-
-else
- 
-    mkdir /home/users/$name
-    chmod 700 /home/users/$name
-    samba-tool user create $name $password --given-name="$name" --surname="$surname"
+ else
+    mkdir "/home/users/$name"
+    chmod 700 "/home/users/$name"
+    samba-tool user create "$name" "$password" --given-name="$name" --surname="$surname"
     echo >> /etc/samba/diruserdc.conf
-    echo >> /etc/samba/diruserdc.conf "#1"$name
-    echo >> /etc/samba/diruserdc.conf [$name]
+    echo >> /etc/samba/diruserdc.conf "#1${name}"
+    echo >> /etc/samba/diruserdc.conf "[$name]"
     echo >> /etc/samba/diruserdc.conf "browseable = no"
-    echo >> /etc/samba/diruserdc.conf "path = /home/users/"$name
+    echo >> /etc/samba/diruserdc.conf "path = /home/users/$name"
     echo >> /etc/samba/diruserdc.conf "read only = no"
-    echo >> /etc/samba/diruserdc.conf "admin users = "$name
-    echo >> /etc/samba/diruserdc.conf "#2"$name
-    pdbedit $name -D Y:
-    pdbedit $name -h \\\\versalles.local\\$name
+    echo >> /etc/samba/diruserdc.conf "admin users = $name"
+    echo >> /etc/samba/diruserdc.conf "#2${name}"
+    pdbedit "$name" -D Y:
+    pdbedit "$name" -h "\\\\versalles.local\\$name"
     smbcontrol all reload-config
 
     var1=$(pdbedit $name -v)
-        (dialog --title "User of Domain added verbose" \
-    --stdout \
-    --msgbox "$var1" 0 0 )
+    (dialog --title "User of Domain added verbose" \
+            --stdout \
+            --msgbox "$var1" 0 0 )
 
-fi
-    turnkey-dc-conf
+ fi
+ turnkey-dc-conf
  ;;
 
     5)
 
  #######################Change password of domain user###############################
 
-        userpwchange=$(dialog --title "" \
-        --stdout \
-        --inputbox "name domain user to change the password" 0 0 )
+ userpwchange=$(dialog --title "" \
+                       --stdout \
+                       --inputbox "name domain user to change the password" 0 0 )
 
-var1=$userpwchange
-var2=$(samba-tool user list | grep $userpwchange)
-var3=""
+ var1=$userpwchange
+ var2=$(samba-tool user list | grep "$userpwchange")
+ var3=""
 
-if [ $var1 = $var3 ]
+ if [[ "$var1" == "$var3" ]]; then
+    (dialog --title "ERROR" \
+            --stdout \
+            --msgbox "You have left the field of username empty\nWrite a name valid" 0 0 )
 
-        then
-        (dialog --title "ERROR" \
-        --stdout \
-        --msgbox "You have left the field of username empty\nWrite a name valid" 0 0 )
+ elif [[ "$var1" == "$var2" ]]; then
+    password=$(dialog --title "" \
+                      --stdout \
+                      --inputbox "write the new password\nDefault versalles" 0 0 versalles)
 
-elif [ $var1 = $var2 ]
+    samba-tool user setpassword "$userpwchange" --newpassword="$password"
 
-    then
-           password=$(dialog --title "" \
-                   --stdout \
-                   --inputbox "write the new password\nDefault versalles" 0 0 versalles)
-
-        samba-tool user setpassword $userpwchange --newpassword=$password
-
-        (dialog --title "Changed the password for $var1" \
-        --msgbox "For $var1\nNew password is $password" 0 0 )
-
-    else
-        (dialog --title "" \
-        --msgbox "User $var1 no exists" 0 0 )
-fi
-turnkey-dc-conf
+    (dialog --title "Changed the password for $var1" \
+            --msgbox "For $var1\nNew password is $password" 0 0 )
+ else
+    (dialog --title "" \
+            --msgbox "User $var1 no exists" 0 0 )
+ fi
+ turnkey-dc-conf
  ;;
 
     6)
  ######################List user of Domain verbose################################
  user=$(dialog --title "Listing User Domain Verbose" \
-                   --stdout \
-                   --inputbox "user name?" 0 0)
+               --stdout \
+               --inputbox "user name?" 0 0)
 
+ userexists1=$(samba-tool user list | grep "$user")
+ userexists2=""
+ userexists3=$(pdbedit "$user" -v)
 
-           userexists1=$(samba-tool user list | grep $user)
-           userexists2=""
-           userexists3=$(pdbedit $user -v)
-
-           if [ $userexists1 = $userexists2 ]
-
-           then
-            (dialog --title "ERROR" \
+ if [[ "$userexists1" == "$userexists2" ]]; then
+    (dialog --title "ERROR" \
             --stdout \
             --msgbox "The user no exists\nOr the field is empy" 0 0 )
-
-                   else
-
-            (dialog --title "Listing User Domain Verbose" \
+ else
+    (dialog --title "Listing User Domain Verbose" \
             --stdout \
             --msgbox "$userexists3" 0 0 )
-           fi
-
-    turnkey-dc-conf
+ fi
+ turnkey-dc-conf
  ;;
 
     7)
  ########################Delete domain user##############################
-deleteuserdc=$(dialog --title "" \
-       --stdout \
-       --inputbox "Write the name of domain user to delete?" 0 0 \
-       --yesno "Do you want to remove the user?" 0 0 )
+ deleteuserdc=$(dialog --title "" \
+                       --stdout \
+                       --inputbox "Write the name of domain user to delete?" 0 0 \
+                       --yesno "Do you want to remove the user?" 0 0 )
 
-var1=$deleteuserdc
-var2=$(samba-tool user list | grep $deleteuserdc)
-var3=""
+ var1="$deleteuserdc"
+ var2=$(samba-tool user list | grep "$deleteuserdc")
+ var3=""
 
-if [ $var1 = $var3 ]
+ if [[ "$var1" == "$var3" ]]; then
+    (dialog --title "ERROR" \
+            --stdout \
+            --msgbox "Variable is empty\nWrite a name valid" 0 0 )
 
-        then
-        (dialog --title "ERROR" \
-        --stdout \
-        --msgbox "Variable is empty\nWrite a name valid" 0 0 )
+ elif [[ "$var1" == "$var2" ]]; then
+    smbpasswd -x "$var1"
+    rm -rf "/home/users/$var1"
+    #########delete records in samba files###################
+    sed -i "/"#1"${var1}/,/"#2"${var1}/d" /etc/samba/diruserdc.conf
+    sed -i "s/", "${var1}//g" /etc/samba/shares.conf
+    sed -i "s/${var1}","//g" /etc/samba/shares.conf
+    sed -i "s/${var1}//g" /etc/samba/shares.conf
 
-elif [ $var1 = $var2 ]
-
-
-    then
-        smbpasswd -x $var1
-        rm -r /home/users/$var1
-                #########delete records in samba files###################
-        sed -i "/"#1"${var1}/,/"#2"${var1}/d" /etc/samba/diruserdc.conf
-        sed -i "s/", "${var1}//g" /etc/samba/shares.conf
-        sed -i "s/${var1}","//g" /etc/samba/shares.conf
-        sed -i "s/${var1}//g" /etc/samba/shares.conf
-
-
-        (dialog --title "" \
-        --msgbox "User $var1 has been delete" 0 0 )
-
-    else
-        (dialog --title "" \
-        --msgbox "User $deleteuserdc no exists" 0 0 )
-fi
-
-
-turnkey-dc-conf
-;;
-
+    (dialog --title "" \
+            --msgbox "User $var1 has been delete" 0 0 )
+ else
+    (dialog --title "" \
+            --msgbox "User $deleteuserdc no exists" 0 0 )
+ fi
+ turnkey-dc-conf
+ ;;
 
         8)
  #######################Add new share in Domain###############################
-   share=$(dialog --title "" \
-                   --stdout \
-                   --inputbox "¿Name New Share?" 0 0)
+ share=$(dialog --title "" \
+                --stdout \
+                --inputbox "¿Name New Share?" 0 0)
 
-    var1=$share
-    var2=""
-    var3=$(ls /home/shares | grep $share)
+ var1="$share"
+ var2=""
+ var3=$(ls /home/shares | grep "$share")
 
-if [ $var1 = $var2 ]
-
-        then
-        (dialog --title "ERROR" \
-        --stdout \
-        --msgbox "Variable is empty\nWrite a name valid" 0 0 )
-
-elif [ $var3 = $var1 ]
-
-    then
-         (dialog --title "ERROR" \
-        --stdout \
-        --msgbox "Net share exists\nGive it a different name" 0 0 )
-                turnkey-dc-conf
-
-    else
-
-  admin=$(dialog --title "" \
+ if [[ "$var1" == "$var2" ]]; then
+    (dialog --title "ERROR" \
+            --stdout \
+            --msgbox "Variable is empty\nWrite a name valid" 0 0 )
+ elif [[ "$var3" == "$var1" ]]; then
+    (dialog --title "ERROR" \
+            --stdout \
+            --msgbox "Net share exists\nGive it a different name" 0 0 )
+    turnkey-dc-conf
+ else
+    admin=$(dialog --title "" \
                    --stdout \
                    --inputbox "¿Admin Groups or Users?\n
 Examples:\n
@@ -333,141 +299,118 @@ Several users: madrid, caceres\n
 Several groups: @profesores, @comun\n
 Several users and groups: @profesores, @comun, madrid, caceres" 0 0)
 
+ varuser1=""
+ varuser2=$(samba-tool user list | grep "$admin")
 
-varuser1=""
-varuser2=$(samba-tool user list | grep $admin)
-
-       if [ $varuser2 = $varuser1 ]
-
-        then
+    if [[ "$varuser2" == "$varuser1" ]]; then
         (dialog --title "ERROR" \
-        --stdout \
-        --msgbox "Variable is empty.\nOr the user no exists\nWrite a name valid" 0 0 )
-
+                --stdout \
+                --msgbox "Variable is empty.\nOr the user no exists\nWrite a name valid" 0 0 )
     else
+        mkdir "/home/shares/$share"
+        chmod 770 "/home/shares/$share"
+        echo >> /etc/samba/shares.conf
+        echo >> /etc/samba/shares.conf "#1${share}"
+        echo >> /etc/samba/shares.conf "[$share]"
+        echo >> /etc/samba/shares.conf "path = /home/shares/$share"
+        echo >> /etc/samba/shares.conf "read only = no"
+        echo >> /etc/samba/shares.conf "admin users = $admin"
+        echo >> /etc/samba/shares.conf "#2$share"
+        smbcontrol all reload-config
 
-
-    mkdir /home/shares/$share
-    chmod 770 /home/shares/$share
-    echo >> /etc/samba/shares.conf
-    echo >> /etc/samba/shares.conf "#1"$share
-    echo >> /etc/samba/shares.conf ""[$share]
-    echo >> /etc/samba/shares.conf "path = /home/shares/"$share
-    echo >> /etc/samba/shares.conf "read only = no"
-    echo >> /etc/samba/shares.conf "admin users = "$admin
-    echo >> /etc/samba/shares.conf "#2"$share
-    smbcontrol all reload-config
-
-    varshare=$(smbclient -L localhost -U%)
-    (dialog --title "List net disk Shares" \
-    --stdout \
-    --msgbox "$varshare" 0 0 )
+        varshare=$(smbclient -L localhost -U%)
+        (dialog --title "List net disk Shares" \
+                --stdout \
+                --msgbox "$varshare" 0 0 )
     fi
-fi
+ fi
  turnkey-dc-conf
-;;
+ ;;
 
     9)
  #######################Delete net Share in Domain###############################
 
-sharedelete=$(dialog --title "Selet net share to delete" \
-                   --stdout \
-                   --dselect /home/shares/.  14 70 )
+ sharedelete=$(dialog --title "Selet net share to delete" \
+                      --stdout \
+                      --dselect /home/shares/.  14 70 )
+ var1=$(basename "$sharedelete")
 
-var1=$(basename $sharedelete)
-
-if [ $sharedelete = /home/shares/. ]
-
-        then
-        (dialog --title "ERROR" \
-        --stdout \
-        --msgbox "\nNo net share floder selected\nTry again" 0 0 )
-
-elif [ $sharedelete = /home/shares/.. ]
-
-        then
-        (dialog --title "ERROR" \
-        --stdout \
-        --msgbox "\nNo net share floder selected\nTry again" 0 0 )
-
-
-else
-
-        (dialog --title "Are you sure to erase net share?" \
-        --msgbox "\nIF YOU PRESS ENTER\n\n
+ if [[ "$sharedelete" == "/home/shares/." ]]; then
+    (dialog --title "ERROR" \
+            --stdout \
+            --msgbox "\nNo net share floder selected\nTry again" 0 0 )
+ elif [[ "$sharedelete" == "/home/shares/.." ]]; then
+    (dialog --title "ERROR" \
+            --stdout \
+            --msgbox "\nNo net share floder selected\nTry again" 0 0 )
+ else
+    (dialog --title "Are you sure to erase net share?" \
+            --msgbox "\nIF YOU PRESS ENTER\n\n
 WILL DEFINITELY ELIMINATE\n\nTHE NETWORK SHARED DIRECTORY CALLED $sharedelete\n\nTo cacel Ctrl+x" 0 0 )
-                       
-rm -r $sharedelete
-#########delete records in samba files###################
-sed -i "/"#1"${var1}/,/"#2"${var1}/d" /etc/samba/shares.conf
 
-        (dialog --msgbox "The net share ${varshare1} was erased" 0 0)
-fi
-turnkey-dc-conf
-;;
+    rm -rf "$sharedelete"
+    #########delete records in samba files###################
+    sed -i "/"#1"${var1}/,/"#2"${var1}/d" /etc/samba/shares.conf
 
+    (dialog --msgbox "The net share ${varshare1} was erased" 0 0)
+ fi
+ turnkey-dc-conf
+ ;;
 
     10)
  ######################List Computer Of Domain################################
-#samba-tool computer list
-#sleep 3
-computer=$(samba-tool computer list)
-    (dialog --title "computer list" \
-    --stdout \
-    --msgbox "$computer" 0 0 )
-turnkey-dc-conf
+ #samba-tool computer list
+ computer=$(samba-tool computer list)
+ (dialog --title "computer list" \
+         --stdout \
+         --msgbox "$computer" 0 0 )
+ turnkey-dc-conf
  ;;
 
-
     11)
-#######################Show Net Shares###############################
-    varshare=$(smbclient -L localhost -U%)
-    (dialog --title "List net disk Shares" \
-    --stdout \
-    --msgbox "$varshare" 0 0 )
-turnkey-dc-conf
-;;
-
+ #######################Show Net Shares###############################
+ varshare=$(smbclient -L localhost -U%)
+ (dialog --title "List net disk Shares" \
+         --stdout \
+         --msgbox "$varshare" 0 0 )
+ turnkey-dc-conf
+ ;;
 
     12)
-    ######################Browse and select files to delete################################
-
-filedelete=$(dialog --title "Choose a file" \
-                   --stdout \
-                   --fselect $HOME/  14 70)
-if [ -f "$filedelete" ]
-then
+ ######################Browse and select files to delete################################
+ filedelete=$(dialog --title "Choose a file" \
+                     --stdout \
+                     --fselect "$HOME/"  14 70)
+ if [[ -f "$filedelete" ]]; then
     dialog --title "File erased" \
            --yesno "Are you sure to want delete the file called $filedelete?" 0 0
     ans=$?
-    if [ $ans -eq 0 ]
-    then
+    if [[ $ans -eq 0 ]]; then
         rm "$filedelete"
         dialog --msgbox "El archivo $filedelete fue borrado" 0 0
     fi
-fi
-turnkey-dc-conf
+ fi
+ turnkey-dc-conf
  ;;
 
     13)
  #########################Exit#############################
-
-    (dialog --title "Exit of application" \
-    --stdout \
-    --msgbox "Do you want to exit now?" 0 0 )
-
-exit
-;;
+ (dialog --title "Exit of application" \
+         --stdout \
+         --msgbox "Do you want to exit now?" 0 0 )
+ exit
+ ;;
 
     14)
-#######################Shutdown###############################
-    (dialog --title "SHUTDOWN" \
-    --stdout \
-    --msgbox "In ten shutting down the system?" 0 0 )
+ #######################Shutdown###############################
+ (dialog --title "SHUTDOWN" \
+         --stdout \
+         --msgbox "In ten shutting down the system?" 0 0 )
 
-for i in $(seq 0 10 100) ;
-do sleep 1;
-echo $i | dialog --gauge "turning off the machine" 10 70 0; done
-halt -p
-;;
+ for i in $(seq 0 10 100); do
+    sleep 1;
+    echo $i | dialog --gauge "turning off the machine" 10 70 0
+ done
+ halt -p
+ ;;
 esac
