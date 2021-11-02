@@ -6,6 +6,15 @@
 # https://www.turnkeylinux.org/forum/support/mon-20210517-0129/domain-controller#comment-50270
 
 mkdir -p /home/{users,shares}
+echo > /etc/samba/diruserdc.conf
+echo > /etc/samba/shares.conf
+cat >> /etc/samba/smb.conf <<EOF
+
+
+include = /etc/samba/shares.conf
+include = /etc/samba/diruserdc.conf
+EOF
+smbcontrol all reload-config
 
 HEIGHT=15
 WIDTH=50
