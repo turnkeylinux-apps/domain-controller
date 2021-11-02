@@ -79,7 +79,7 @@ passwordset=$(samba-tool domain passwordsettings show)
     --stdout \
     --msgbox "$passwordset" 0 0 )
 
-./domainconfmenu.sh
+turnkey-dc-conf
  ;;
 
         2)
@@ -88,7 +88,7 @@ passwordset=$(samba-tool domain passwordsettings show)
     (dialog --title "Users list" \
     --stdout \
     --msgbox "$users" 0 0 )
- ./domainconfmenu.sh
+ turnkey-dc-conf
 ;;
 
 
@@ -114,7 +114,7 @@ samba-tool group addmembers "Domain Admins" $name &&
 samba-tool group addmembers "enterprise admins" $name &&
 samba-tool group addmembers "group policy creator owners" $name
 smbcontrol all reload-config
-./domainconfmenu.sh
+turnkey-dc-conf
  ;;
 
     4)
@@ -173,7 +173,7 @@ else
     --msgbox "$var1" 0 0 )
 
 fi
-    ./domainconfmenu.sh
+    turnkey-dc-conf
  ;;
 
     5)
@@ -211,7 +211,7 @@ elif [ $var1 = $var2 ]
         (dialog --title "" \
         --msgbox "User $var1 no exists" 0 0 )
 fi
-./domainconfmenu.sh
+turnkey-dc-conf
  ;;
 
     6)
@@ -239,7 +239,7 @@ fi
             --msgbox "$userexists3" 0 0 )
            fi
 
-    ./domainconfmenu.sh
+    turnkey-dc-conf
  ;;
 
     7)
@@ -282,7 +282,7 @@ elif [ $var1 = $var2 ]
 fi
 
 
-./domainconfmenu.sh
+turnkey-dc-conf
 ;;
 
 
@@ -309,7 +309,7 @@ elif [ $var3 = $var1 ]
          (dialog --title "ERROR" \
         --stdout \
         --msgbox "Net share exists\nGive it a different name" 0 0 )
-                ./domainconfmenu.sh
+                turnkey-dc-conf
 
     else
 
@@ -353,7 +353,7 @@ varuser2=$(samba-tool user list | grep $admin)
     --msgbox "$varshare" 0 0 )
     fi
 fi
- ./domainconfmenu.sh
+ turnkey-dc-conf
 ;;
 
     9)
@@ -392,7 +392,7 @@ sed -i "/"#1"${var1}/,/"#2"${var1}/d" /etc/samba/shares.conf
 
         (dialog --msgbox "The net share ${varshare1} was erased" 0 0)
 fi
-./domainconfmenu.sh
+turnkey-dc-conf
 ;;
 
 
@@ -404,7 +404,7 @@ computer=$(samba-tool computer list)
     (dialog --title "computer list" \
     --stdout \
     --msgbox "$computer" 0 0 )
-./domainconfmenu.sh
+turnkey-dc-conf
  ;;
 
 
@@ -414,7 +414,7 @@ computer=$(samba-tool computer list)
     (dialog --title "List net disk Shares" \
     --stdout \
     --msgbox "$varshare" 0 0 )
-./domainconfmenu.sh
+turnkey-dc-conf
 ;;
 
 
@@ -435,7 +435,7 @@ then
         dialog --msgbox "El archivo $filedelete fue borrado" 0 0
     fi
 fi
-./domainconfmenu.sh
+turnkey-dc-conf
  ;;
 
     13)
