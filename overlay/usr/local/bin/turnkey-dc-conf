@@ -5,6 +5,8 @@
 # Copy/pasted from
 # https://www.turnkeylinux.org/forum/support/mon-20210517-0129/domain-controller#comment-50270
 
+mkdir -p /home/{users,shares}
+
 HEIGHT=15
 WIDTH=50
 CHOICE_HEIGHT=8
