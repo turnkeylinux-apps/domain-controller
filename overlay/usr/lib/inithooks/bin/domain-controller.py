@@ -386,7 +386,7 @@ def main():
                 "You can create new Active Directory or join existing one."
                 "\n\nNote that joining a non-TurnKey existing AD domain not is"
                 " experimental and may fail. If so, please manually configure"
-                " using the 'sambatool' commandline tool.",
+                " using the 'samba-tool' commandline tool.",
                 "Create",
                 "Join")
             if create:
