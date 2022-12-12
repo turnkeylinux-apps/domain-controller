@@ -36,6 +36,11 @@ Options:
                     'hostname=' will be ignored.
                     DEFAULT=dc2 # only if joining a domain and run
                     interactively.
+    --username=     To join an existing domain, you need to specify the domain
+                    username to use. If run non-interactively and '--username'
+                    not set, will assume DEFAULT. If joining an existing domain
+                    interactively, then will ask (unless this switch is used).
+                    DEFAULT=administrator
 
 Environment::
 
@@ -52,7 +57,7 @@ To create a new AD domain non-interactively, set valid '--pass', '--realm' and
 '--domain'.
 
 To join an existing domain non-interactively, set valid '--pass', '--realm',
---domain', '--join_ns' and '--hostname'.
+--domain', '--join_ns' and '--hostname' (and optionally '--username').
 
 To run interactively, ensure that '--pass' &/or '--realm' &/or '--domain' are
 _not_ set. Or set env var '_TURNKEY_INIT'. All required components that are not
@@ -132,7 +137,6 @@ def validate_realm(realm, interactive):
 
 
 def validate_netbios(domain, interactive):
-    err = []
     if len(domain) < 1 or len(domain) > 15:
         return error_msg("Netbios domain (aka workgroup) must be greater than"
                          " 0 and less than 15 characters (7+ recommend).",
@@ -143,6 +147,28 @@ def validate_netbios(domain, interactive):
                          interactive)
     else:
         return (domain.upper())
+
+
+def validate_username(username, interactive):
+    if not username.isprintable():
+        return error_msg("Username must not include non-printable:"
+                         " characters.", interactive)
+    if username[-1] == ' ':
+        return error_msg("Username must not end with a space",
+                         interactive)
+    backslash = r"\ "[0]
+    invalid_chars = ['"', '/', '[', ']', ':', ';', backslash,
+                     '|', '=', ',', '+', '*', '?', '<', '>']
+    found_chars = []
+    for char in username:
+        if char in invalid_chars:
+            found_chars.append(char)
+    if found_chars:
+        return error_msg(f"Valid usernames can not include some special"
+                         f" characters. Invalid characters are:"
+                         f" {' '.join(invalid_chars)}",
+                         interactive)
+    return (username)
 
 
 def ping_client(fqdn):
@@ -306,6 +332,7 @@ def main():
     DEFAULT_DOMAIN = "DOMAIN"
     DEFAULT_NS = ""
     DEFAULT_NEW_HOSTNAME = "dc2"
+    DEFAULT_ADMIN_USER = ADMIN_USER
 
     try:
         opts, args = getopt.gnu_getopt(sys.argv[1:], "h",
@@ -314,7 +341,8 @@ def main():
                                         'domain=',
                                         'realm=',
                                         'join_ns=',
-                                        'hostname='])
+                                        'hostname=',
+                                        'username='])
     except getopt.GetoptError as e:
         usage(e)
 
@@ -324,6 +352,7 @@ def main():
     admin_password = ""
     join_nameserver = ""
     hostname = ""
+    username = ""
 
     for opt, val in opts:
         if opt in ('-h', '--help'):
@@ -339,11 +368,13 @@ def main():
             DEFAULT_NS = join_nameserver
         elif opt == '--hostname':
             hostname = val
+        elif opt == '--username':
+            username = val
 
     if (
             (not (realm and domain and admin_password)) or
             (join_nameserver and not valid_ip(join_nameserver) or
-                (join_nameserver and not hostname))
+            (join_nameserver and not hostname))
             or TURNKEY_INIT):
         interactive = True
         if join_nameserver:
@@ -384,7 +415,7 @@ def main():
             create = d.yesno(
                 "Create new AD or join existing?",
                 "You can create new Active Directory or join existing one."
-                "\n\nNote that joining a non-TurnKey existing AD domain not is"
+                "\n\nNote that joining a non-TurnKey existing AD domain is"
                 " experimental and may fail. If so, please manually configure"
                 " using the 'samba-tool' commandline tool.",
                 "Create",
@@ -432,6 +463,30 @@ def main():
         else:
             domain = validate_netbios(domain, interactive)
 
+        if interactive and not create:
+            d = Dialog('TurnKey Linux - First boot configuration')
+            if not username:
+                while True:
+                    username = d.get_input(
+                        "Existing Windows AD Domain Admin username",
+                        "To join an existing domain, you need to authenticate"
+                        " as an existing domain adminstrator.\n\n"
+                        "Enter existing AD domain admin username.",
+                        DEFAULT_ADMIN_USER)
+                    username = validate_username(username, interactive)
+                    if username[0]:
+                        break
+                    else:
+                        d.error(username[1])
+
+                        continue
+        elif username and not create:
+            username = validate_username(username, interactive)
+            if not username[0]:
+                fatal(username[1])
+        else:
+            username = DEFAULT_ADMIN_USER
+
         if not admin_password:
             d = Dialog('TurnKey Linux - First boot configuration')
             server_status = 'new' if create else 'existing'
@@ -440,6 +495,7 @@ def main():
                     "Enter password for the {} samba Domain 'Administrator'"
                     " account.".format(server_status),
                     pass_req=8, min_complexity=3, blacklist=['(', ')'])
+
         if interactive and not create:
             d = Dialog('Turnkey Linux - First boot configuration')
             if not join_nameserver:
@@ -486,7 +542,7 @@ def main():
                 rm_glob('/'.join([_dir, _db_file]))
 
         set_expiry = ['samba-tool', 'user',
-                      'setexpiry', ADMIN_USER, '--noexpiry']
+                      'setexpiry', username, '--noexpiry']
         export_krb = ['samba-tool', 'domain',
                       'exportkeytab', '/etc/krb5.keytab']
 
@@ -511,7 +567,7 @@ def main():
                 fob.write('    dns_lookup_kdc = true\n')
                 fob.write('    default_realm = {}'.format(realm))
             ip = None  # will update 127.0.1.1 hosts entry only
-            config_krb = ['kinit', 'administrator']
+            config_krb = ['kinit', username]
             krb_pass = admin_password
             samba_domain = ['samba-tool', 'domain', 'join',
                             realm.lower(), 'DC',
@@ -591,7 +647,7 @@ def main():
             while subprocess.run(['systemctl', 'is-active',
                                   '--quiet', 'samba-ad-dc']).returncode != 0:
                 time.sleep(1)
-            subprocess.check_output(['kinit', ADMIN_USER],
+            subprocess.check_output(['kinit', username],
                                     encoding='utf-8',
                                     input=admin_password)
             msg = "\nPlease ensure that you have set a static IP. If you" \
@@ -607,7 +663,7 @@ def main():
                       "    AD DNS domain: {}\n" \
                       "    AD admin account name: {}\n" \
                       "    AD admin user password: (what you set)\n" \
-                      "".format(nameserver, realm.lower(), ADMIN_USER)
+                      "".format(nameserver, realm.lower(), username)
 
             if interactive:
                 d = Dialog('Turnkey Linux - First boot configuration')
