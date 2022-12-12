@@ -126,7 +126,8 @@ def validate_realm(realm, interactive):
             err = error_msg("All realm segments must be greater than 0 and"
                             " less than 63 characters.",
                             interactive)
-        if not bit.isalnum() or not bit[0].isalpha():
+        regex = r'^[a-zA-Z0-9-]*$'
+        if not bit[0].isalpha() or not re.fullmatch(regex, bit):
             err = error_msg("All realm segment characters must be"
                             " alphanumeric and must start with a letter.",
                             interactive)
