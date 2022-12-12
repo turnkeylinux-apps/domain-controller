@@ -1,0 +1,19 @@
+Package: samba*
+Pin: release a=bullseye-backports
+Pin-Priority: 500
+
+Package: libldb2
+Pin: release a=bullseye-backports
+Pin-Priority: 500
+
+Package: libtalloc2
+Pin: release a=bullseye-backports
+Pin-Priority: 500
+
+Package: libtdb1
+Pin: release a=bullseye-backports
+Pin-Priority: 500
+
+Package: libtevent0
+Pin: release a=bullseye-backports
+Pin-Priority: 500
