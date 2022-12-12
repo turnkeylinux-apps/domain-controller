@@ -71,7 +71,7 @@ import subprocess
 from subprocess import PIPE, STDOUT
 from string import digits, ascii_uppercase, ascii_lowercase, punctuation
 
-from dialog_wrapper import Dialog
+from libinithooks.dialog_wrapper import Dialog
 
 
 ADMIN_USER = "administrator"
