@@ -7,12 +7,14 @@ turnkey-domain-controller-17.0 (1) turnkey; urgency=low
 
   * Allow dash in realm - closes #1670.
 
+  * Disable systemd-resolved.service in LXC builds - closes #1766.
+
   * Update inithook for libinithook refactoring in v17.x.
 
   * Note: Please refer to turnkey-core's 17.0 changelog for changes common to all
     appliances. Here we only describe changes specific to this appliance.
 
- -- Jeremy Davis <jeremy@turnkeylinux.org>  Fri, 16 Dec 2022 04:09:00 +0000
+ -- Jeremy Davis <jeremy@turnkeylinux.org>  Mon, 20 Feb 2023 03:28:24 +0000
 
 turnkey-domain-controller-16.2 (1) turnkey; urgency=low
 
