@@ -7,7 +7,7 @@
         <meta http-equiv="Content-Script-Type" content="text/javascript">
 
         <title>TurnKey Domain Controller</title>
-        
+
         <link rel="stylesheet" href="css/ui.tabs.css" type="text/css" media="print, projection, screen">
         <link rel="stylesheet" href="css/base.css" type="text/css">
 
@@ -19,33 +19,40 @@
                 $('#container-1 > ul').tabs({ fx: { opacity: 'toggle'} });
             });
         </script>
+        <script type="text/javascript">
+            jQuery(document).ready(function($) {
+              https = "https://"+window.location.hostname;
+              $("a[id='webshell']").attr('href', https+":12320");
+              $("a[id='webmin']").attr('href', https+":12321");
+              $("a[id='samba-webmin']").attr('href', https+":12321/samba");
+              $("a[id='cups']").attr('href', https+":631");
+            });
+        </script>
     </head>
 
     <body>
         <h1>TurnKey Domain Controller</h1>
-        
+
         <div id="container-1">
             <ul>
                 <li><a href="#cp"><span>Control Panel</span></a></li>
             </ul>
-
             <div id="cp">
                 <div class="fragment-content">
                     <div>
-                        <a href="https://<!--#echo var="HTTP_HOST"-->:12320">
+                        <a id="webshell" href="">
                         <img src="images/shell.png"/>Web Shell</a>
                     </div>
                     <div>
-                        <a href="https://<!--#echo var="HTTP_HOST"-->:12321">
+                        <a id="webmin" href="">
                         <img src="images/webmin.png"/>Webmin</a>
                     </div>
                     <div>
-                        <a href="https://<!--#echo
-                        var="HTTP_HOST"-->:12321/samba/index.cgi">
-                        <img src="images/samba.png"/>Samba conf<br/>via Webmin<br/>(login first)</a>
+                        <a id="samba-webmin" href="">
+                        <img src="images/samba.png"/>Samba conf<br/>via Webmin<br/>(requires login first)</a>
                     </div>
                     <div>
-                        <a href="https://<!--#echo var="HTTP_HOST"-->:631">
+                        <a id="cups" href="">
                         <img src="images/cups.png"/>Printing<br/>(cups)</a>
                     </div>
                     <div></div>

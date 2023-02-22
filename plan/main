@@ -13,4 +13,5 @@ samba-dsdb-modules
 ldb-tools
 
 lighttpd
+lighttpd-mod-openssl
 winbind
