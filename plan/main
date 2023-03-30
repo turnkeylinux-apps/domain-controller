@@ -8,6 +8,7 @@ acl
 attr  /* Samba AD dependency */
 krb5-user
 samba-vfs-modules
+samba-ad-provision
 
 samba-dsdb-modules
 ldb-tools
