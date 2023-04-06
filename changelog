@@ -1,3 +1,13 @@
+turnkey-domain-controller-17.1 (1) turnkey; urgency=low
+
+  * Updated all Debian packages to latest.
+    [ autopatched by buildtasks ]
+
+  * Patched bugfix release. Closes #1734.
+    [ autopatched by buildtasks ]
+
+ -- Jeremy Davis <jeremy@turnkeylinux.org>  Thu, 30 Mar 2023 00:37:16 +0000
+
 turnkey-domain-controller-17.0 (1) turnkey; urgency=low
 
   * Install Samba v4.17.3 from Bullseye backports - supports latest Win11
