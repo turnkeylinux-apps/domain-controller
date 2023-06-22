@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # Copyright (c) 2010 Alon Swartz <alon@turnkeylinux.org> - all rights reserved
-# Copyright (c) 2011-2020 TurnKey GNU/Linux <admin@turnkeylinux.org>
+# Copyright (c) 2011-2023 TurnKey GNU/Linux <admin@turnkeylinux.org>
 """Configure Samba AD domain, realm and administrator password
 
 Options:
@@ -82,16 +82,16 @@ from libinithooks.dialog_wrapper import Dialog
 ADMIN_USER = "administrator"
 TURNKEY_INIT = os.getenv("_TURNKEY_INIT")
 RESOLVCNF_HEAD = '/etc/resolvconf/resolv.conf.d/head'
-RESOLVCNF_BAK = '{}.bak'.format(RESOLVCNF_HEAD)
+RESOLVCNF_BAK = f'{RESOLVCNF_HEAD}.bak'
 HOSTS_FILE = '/etc/hosts'
-HOSTS_BAK = '{}.bak'.format(HOSTS_FILE)
+HOSTS_BAK = f'{HOSTS_FILE}.bak'
 COMMAND_LOG = '/var/log/inithooks/samba_dc.log'
 
 
 def usage(s=None):
     if s:
         print("Error:", s, file=sys.stderr)
-    print("Syntax: %s [options]" % sys.argv[0], file=sys.stderr)
+    print(f"Syntax: {sys.argv[0]} [options]", file=sys.stderr)
     print(__doc__, file=sys.stderr)
     sys.exit(1)
 
@@ -186,11 +186,7 @@ def check_dns(fqdn):
     return False
 
 
-def validate_hostname(hostname, domain, interactive, default):
-    if hostname == default:
-        return error_msg(
-                "Hostname matches default '{}'.".format(default),
-                interactive)
+def validate_hostname(hostname, domain, interactive):
     pattern = r"^[-\w]*$"
     if len(hostname.split('.')) > 1:
         return error_msg("Only the hostname (not the domain/realm) should be"
@@ -202,7 +198,7 @@ def validate_hostname(hostname, domain, interactive, default):
                          interactive)
     fqdn = '.'.join([hostname, domain]).lower()
     if check_dns(fqdn):
-        return error_msg("Host {} already registered on network.".format(fqdn),
+        return error_msg(f"Host {fqdn} already registered on network.",
                          interactive)
     return (hostname)
 
@@ -250,9 +246,8 @@ def run_command(command, stdin=False):
 def update_resolvconf(domain, nameserver, interactive):
     if not ping_client(nameserver):
         return error_msg(
-                "No client is responding to ping at ip address {}."
-                "".format(nameserver),
-                interactive)
+            f"No client is responding to ping at ip address {nameserver}.",
+            interactive)
     shutil.copy2(RESOLVCNF_HEAD, RESOLVCNF_BAK)
     with open(RESOLVCNF_HEAD, 'r') as fob:
         resolvconf = fob.readlines()
@@ -265,8 +260,8 @@ def update_resolvconf(domain, nameserver, interactive):
                     value = nameserver
                 else:
                     value = domain
-                line = '{} {}\n'.format(term, value)
-                print('Updating {} ({}) in resolv.conf'.format(term, value))
+                line = f'{term} {value}\n'
+                print(f'Updating {term} ({value}) in resolv.conf')
         new_resolvconf.append(line)
     with open(RESOLVCNF_HEAD, 'w') as fob:
         fob.writelines(new_resolvconf)
@@ -288,7 +283,7 @@ def update_hosts(ip, hostname, domain):
         hosts = fob.readlines()
     new_hosts = []
     localdomain = '127.0.1.1'
-    print('Updating {}:'.format(HOSTS_FILE))
+    print(f'Updating {HOSTS_FILE}:')
     for line in hosts:
         if not line.startswith('#'):
             if line.startswith(localdomain):
@@ -383,8 +378,7 @@ def main():
     elif realm and domain and admin_password and join_nameserver and hostname:
         join_nameserver = valid_ip(join_nameserver)
         update_resolvconf(realm.lower(), join_nameserver, interactive)
-        hostname = validate_hostname(hostname, realm,
-                                     interactive, DEFAULT_HOSTNAME)
+        hostname = validate_hostname(hostname, realm, interactive)
         if join_nameserver and hostname[0]:  # both valid
             create = False
         elif join_nameserver:  # invalid hostname
@@ -493,8 +487,8 @@ def main():
             server_status = 'new' if create else 'existing'
             admin_password = d.get_password(
                     "Samba Password",
-                    "Enter password for the {} samba Domain 'Administrator'"
-                    " account.".format(server_status),
+                    f"Enter password for the {server_status} samba Domain"
+                    " 'Administrator' account.",
                     pass_req=8, min_complexity=3, blacklist=['(', ')'])
 
         if interactive and not create:
@@ -507,7 +501,7 @@ def main():
                         " server",
                         DEFAULT_NS)
                     if not valid_ip(join_nameserver):
-                        d.error("IP: '{}' not valid.".format(join_nameserver))
+                        d.error(f"IP: '{join_nameserver}' not valid.")
                         join_nameserver = ""
                         continue
                     else:
@@ -520,7 +514,7 @@ def main():
                         "Set new unique hostname for this domain-controller.",
                         DEFAULT_NEW_HOSTNAME)
                     hostname = validate_hostname(hostname, realm.lower(),
-                                                 interactive, DEFAULT_HOSTNAME)
+                                                 interactive)
                     if not hostname[0]:
                         d.error(hostname[1])
                         continue
@@ -553,11 +547,11 @@ def main():
             samba_domain = ['samba-tool', 'domain', 'provision',
                             '--server-role=dc', '--use-rfc2307',
                             '--dns-backend=SAMBA_INTERNAL',
-                            '--realm={}'.format(realm),
-                            '--domain={}'.format(domain),
-                            '--adminpass={}'.format(admin_password),
+                            f'--realm={realm}',
+                            f'--domain={domain}',
+                            f'--adminpass={admin_password}',
                             '--option=dns forwarder=8.8.8.8',
-                            '--option=interfaces=127.0.0.1 {}'.format(NET_IP)]
+                            f'--option=interfaces=127.0.0.1 {NET_IP}']
             commands = [samba_domain, set_expiry, export_krb]
             nameserver = '127.0.0.1'
             hostname = HOSTNAME
@@ -566,7 +560,7 @@ def main():
                 fob.write('[libdefaults]\n')
                 fob.write('    dns_lookup_realm = false\n')
                 fob.write('    dns_lookup_kdc = true\n')
-                fob.write('    default_realm = {}'.format(realm))
+                fob.write(f'    default_realm = {realm}')
             ip = None  # will update 127.0.1.1 hosts entry only
             config_krb = ['kinit', username]
             krb_pass = admin_password
@@ -585,7 +579,7 @@ def main():
             update_hosts(ip, hostname, realm)
 
         for samba_command in commands:
-            print('Running command: {}'.format(' '.join(samba_command)))
+            print(f'Running command: {" ".join(samba_command)}')
             if krb_pass:
                 samba_run_code, samba_run_out = run_command(samba_command,
                                                             stdin=krb_pass)
@@ -595,10 +589,8 @@ def main():
             if samba_run_code != 0:
                 os.makedirs(os.path.dirname(COMMAND_LOG), exist_ok=True)
                 with open(COMMAND_LOG, 'a') as fob:
-                    fob.write("Command: {}\n\n".format(
-                        " ".join(samba_command)))
-                    fob.write("\n")
-                    fob.write("{}\n".format(samba_run_out))
+                    fob.write(f"Command: {' '.join(samba_command)}\n\n\n")
+                    fob.write(f"{samba_run_out}\n")
 
                 if interactive:
                     d = Dialog('Turnkey Linux - First boot configuration')
@@ -623,8 +615,8 @@ def main():
                             continue
                     lines_to_print.append('')
                     lines_to_print.append(
-                            "See {} for full output".format(COMMAND_LOG))
-                    retry = d.error("{}\n\n".format('\n'.join(lines_to_print)))
+                            f"See {COMMAND_LOG} for full output")
+                    retry = d.error(f"{'\n'.join(lines_to_print)}\n\n")
                     finalize = False
                     DEFAULT_REALM = realm
                     realm = ""
@@ -636,7 +628,7 @@ def main():
                     break
                 else:
                     fatal("Errors in processing domain-controller inithook"
-                          " data:\n{}".format(samba_run_out))
+                          " data:\n{samba_run_out}")
             else:
                 finalize = True
 
@@ -657,14 +649,12 @@ def main():
                   " see docs for more info).\n"
 
             if create:
-                msg = msg + \
-                      "\nWhen adding clients, you'll need this info:\n" \
-                      "    nameserver: {}\n" \
-                      "    * - set client to use this nameserver first!\n" \
-                      "    AD DNS domain: {}\n" \
-                      "    AD admin account name: {}\n" \
-                      "    AD admin user password: (what you set)\n" \
-                      "".format(nameserver, realm.lower(), username)
+                msg = (f"{msg}\nWhen adding clients, you'll need this info:\n"
+                       f"    nameserver: {nameserver}\n"
+                       "    * - set client to use this nameserver first!\n"
+                       f"    AD DNS domain: {realm.lower()}\n"
+                       f"    AD admin account name: {username}\n"
+                       "    AD admin user password: (what you set)\n")
 
             if interactive:
                 d = Dialog('Turnkey Linux - First boot configuration')
