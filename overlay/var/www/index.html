@@ -22,7 +22,6 @@
         <script type="text/javascript">
             jQuery(document).ready(function($) {
               https = "https://"+window.location.hostname;
-              $("a[id='webshell']").attr('href', https+":12320");
               $("a[id='webmin']").attr('href', https+":12321");
               $("a[id='samba-webmin']").attr('href', https+":12321/samba");
               $("a[id='cups']").attr('href', https+":631");
@@ -36,6 +35,7 @@
         <div id="container-1">
             <ul>
                 <li><a href="#cp"><span>Control Panel</span></a></li>
+                <li><a href="#ref"><span>Getting Started</span></a></li>
             </ul>
             <div id="cp">
                 <div class="fragment-content">
@@ -56,16 +56,44 @@
 
                     <h2>Resources and references</h2>
                     <ul>
+                        <li>Be sure to read the 'Getting Started' notes (tab above)</li>
+                        <li><a href="https://wiki.samba.org/index.php/Main_Page">
+                            Samba Documentation Wiki</a></li>
                         <li><a href="http://samba.org/samba/docs">
-                            Samba documentation</a></li>
-
-                        <li>Important: <a href="https://www.turnkeylinux.org/docs/domain-controller">TurnKey specific documentation</a></li>
+                            Other Samba documentation</a></li>
+                        <li><a href="https://www.turnkeylinux.org/docs/domain-controller">TurnKey specific documentation</a></li>
                         <li><a href="https://www.turnkeylinux.org/domain-controller">TurnKey Domain Controller release notes</a></li>
                     </ul>
 
                 </div>
             </div>
-
+        <div id="ref">
+            <div class="fragment-content">
+                    <p>Note to AWS Marketplace users, who have NOT <a
+                    href="https://www.turnkeylinux.org/awsmp#root">enabled
+                    root</a>:
+                    <br>some commands may require root privileges, so may need to be prefixed with
+                    <code>sudo</code>.<p>
+                    <h3>Compatibility with Windows Server</h3>
+                    <p>Please note that Samba4 is
+                        <a href="https://www.turnkeylinux.org/docs/domain-controller#compatibility">
+                        not compatible with the latest Windows Server AD Schema</a>.
+                    Windows AD schemas up to 2012/2012R2 should work (and are the current defaults).</p>
+                    <h3>First steps</h3>
+                    <p>There are a <a href="https://www.turnkeylinux.org/docs/domain-controller#first-launch">number of steps</a>
+                    that should be taken prior to use. Please be sure to read them before getting started.</p>
+                    <h3>Administer your AD - use RSAT</h3>
+                    <p>For most administration tasks of your AD use <a href="https://www.turnkeylinux.org/docs/domain-controller#admin-rsat">
+                        RSAT (Remote Server Administration Tools).</a></p>
+                    <h3>Backups</h3>
+			        <p>Import note re backups: <a href="https://www.turnkeylinux.org/docs/domain-controller#backups">
+                        TKLBAM won&#39;t backup the AD databases</a>. To recover a problematic Domain Controller, create a new instance and add it
+                    to your existing AD domain. Requires an existing AD Domain Controller (at least 2 DCs is recommended best practice.</p>
+                    <h3>Further recommendations</h3>
+                    <p>See further <a href="https://www.turnkeylinux.org/docs/domain-controller#general-recommendations">
+                        General recommendations</a> on the TurnKey Domain Controller doc page.</p>
+                </div>
+            </div>
         </div>
     </body>
 </html>
