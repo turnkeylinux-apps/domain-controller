@@ -1,4 +1,4 @@
-turnkey-domain-controller-1i8.0 (1) turnkey; urgency=low
+turnkey-domain-controller-18.0 (1) turnkey; urgency=low
 
   * Include some "getting started" docs on the landing page (tklweb-cp) -
     closes #1810.
