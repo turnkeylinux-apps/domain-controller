@@ -1,3 +1,13 @@
+turnkey-domain-controller-18.1 (1) turnkey; urgency=low
+
+ * v18.1 rebuild - includes latest Debian & TurnKey packages. Despite auto
+   security updates, this rebuild is primarily to pre-install the updated
+   cups security package.
+
+ * Disable cups by default and update landing page (tkl-webcp) and readme.
+
+ -- Jeremy Davis <jeremy@turnkeylinux.org>  Tue, 01 Oct 2024 09:01:45 +0000
+
 turnkey-domain-controller-18.0 (1) turnkey; urgency=low
 
   * Include some "getting started" docs on the landing page (tklweb-cp) -

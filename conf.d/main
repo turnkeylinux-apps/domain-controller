@@ -33,3 +33,6 @@ webmin_conf=/etc/webmin/samba/config
 for comm in start restart stop; do
     sed -i "\|^${comm}_cmd=| s|=.*|=service samba-ad-dc ${comm}|" $webmin_conf
 done
+
+# Disable CUPS by default
+systemctl disable --now cups.service

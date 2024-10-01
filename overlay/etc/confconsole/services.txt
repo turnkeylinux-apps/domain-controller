@@ -1,5 +1,6 @@
 Web:          http://$ipaddr
 CUPS admin:   https://$ipaddr:631
+                (disabled by default)
 Webmin:       https://$ipaddr:12321
 SMB/CIFS:     \\$ipaddr (ports 139/445)
 SSH/SFTP:     root@$ipaddr (port 22)

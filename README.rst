@@ -23,11 +23,16 @@ and on top of that:
 
     - Default permissions: owner full permissions.
 
-  - Configured plug-and-play printing support:
+  - Configured plug-and-play printing support (disabled by default):
      
      - Installed PDF printer (drops printed docs to $HOME/PDF).
      - Configured cups web interface to bind to all interfaces and
        support SSL.
+     - Disabled by default; enable|disable via::
+
+        systemctl enable --now cups.service
+        systemctl disable --now cups.service
+
 
 - Includes **flip** to convert text file endings between UNIX and DOS
   formats.

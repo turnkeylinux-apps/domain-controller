@@ -49,7 +49,7 @@
                     </div>
                     <div>
                         <a id="cups" href="">
-                        <img src="images/cups.png"/>Printing<br/>(cups)</a>
+                        <img src="images/cups.png"/>Printing<br/>(cups)<br>disabled by default</a>
                     </div>
                     <div></div>
                     <div></div>
@@ -63,8 +63,8 @@
                             Other Samba documentation</a></li>
                         <li><a href="https://www.turnkeylinux.org/docs/domain-controller">TurnKey specific documentation</a></li>
                         <li><a href="https://www.turnkeylinux.org/domain-controller">TurnKey Domain Controller release notes</a></li>
+                        <li>See "Getting started" tab for info about enabling/disabling CUPS</li>
                     </ul>
-
                 </div>
             </div>
         <div id="ref">
@@ -92,6 +92,13 @@
                     <h3>Further recommendations</h3>
                     <p>See further <a href="https://www.turnkeylinux.org/docs/domain-controller#general-recommendations">
                         General recommendations</a> on the TurnKey Domain Controller doc page.</p>
+                    <h3>Priting service - CUPS</h3>
+                    <p>CUPS is disabled by default - unless you enabled it via interactive firstboot scripts.
+                      <ul>
+                        <li>To enable:<pre>systemctl enable --now cups.service</pre></li>
+                        <li>To disable:<pre>systemctl disable --now cups.service</pre></li>
+                      </ul>
+                    </p>
                 </div>
             </div>
         </div>
