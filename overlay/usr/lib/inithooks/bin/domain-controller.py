@@ -659,7 +659,7 @@ def main():
 
             if interactive:
                 d = Dialog('Turnkey Linux - First boot configuration')
-                d.infobox(msg)
+                d.msgbox("Samba connection info", msg)
             else:
                 print(msg)
             cleanup()
