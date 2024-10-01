@@ -41,6 +41,12 @@ Options:
                     not set, will assume DEFAULT. If joining an existing domain
                     interactively, then will ask (unless this switch is used).
                     DEFAULT=administrator
+    --cups-printing=
+                    valid options:
+                        enable  | yes | true
+                        disable | no  | false
+                    enable or disable CUPS printing servers - skipped if run
+                    from non-interactive firstboot but will ask otherwise.
 
 Environment::
 
@@ -53,11 +59,12 @@ Notes:
 
 Warning: previous configuration will be cleared!
 
-To create a new AD domain non-interactively, set valid '--pass', '--realm' and
-'--domain'.
+To create a new AD domain non-interactively, set valid '--pass', '--realm',
+'--domain' & --cups-printing.
 
 To join an existing domain non-interactively, set valid '--pass', '--realm',
---domain', '--join_ns' and '--hostname' (and optionally '--username').
+--domain', '--join_ns', '--hostname' & '--cups-printing' (and optionally
+'--username').
 
 To run interactively, ensure that '--pass' &/or '--realm' &/or '--domain' are
 _not_ set. Or set env var '_TURNKEY_INIT'. All required components that are not
@@ -272,6 +279,12 @@ def restore_resolvconf():
     shutil.move(RESOLVCNF_BAK, RESOLVCNF_HEAD)
     subprocess.run(['systemctl', 'restart', 'resolvconf.service'])
 
+def cups_status(enable):
+    if enable:
+        subprocess.run(["systemctl", "enable", "--now", "cups.service"])
+    else:
+        subprocess.run(["systemctl", "disable", "--now", "cups.service"])
+
 
 def update_hosts(ip, hostname, domain):
     """This function assumes default layout of hosts file; many circumstance
@@ -343,12 +356,14 @@ def main():
         usage(e)
 
     interactive = False
+    create = ""
     domain = ""
     realm = ""
     admin_password = ""
     join_nameserver = ""
     hostname = ""
     username = ""
+    cups_printing = ""
 
     for opt, val in opts:
         if opt in ('-h', '--help'):
@@ -366,6 +381,8 @@ def main():
             hostname = val
         elif opt == '--username':
             username = val
+        elif opt == '--cups-printing':
+            cups_printing = val
 
     if (
             (not (realm and domain and admin_password)) or
@@ -490,6 +507,26 @@ def main():
                     f"Enter password for the {server_status} samba Domain"
                     " 'Administrator' account.",
                     pass_req=8, min_complexity=3, blacklist=['(', ')'])
+
+        if interactive:
+            if cups_printing:
+                if cups_printing.lower() in ["enable", "yes", "true"]:
+                    cups_status(True)
+                elif cups_printing.lower() in ["disable", "no", "false"]:
+                    cups_status(False)
+                else:
+                    cups_printing = ""
+            if not cups_printing:
+                d = Dialog('TurnKey Linux - First boot configuration')
+                cups_printing = d.yesno(
+                    "Enable CUPS networking printing?",
+                    "\n\nUnless you intend to share printers via your Domain"
+                    " Controller, it is recommended to that CUPS printing"
+                    " service is disabled.",
+                    yes_label="Disable",  # returns True
+                    no_label="Enable"  # returns False
+                    )
+                cups_status(not cups_printing)
 
         if interactive and not create:
             d = Dialog('Turnkey Linux - First boot configuration')
