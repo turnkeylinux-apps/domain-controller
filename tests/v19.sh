@@ -82,7 +82,7 @@ configured_realm=$(testparm -s --parameter-name=realm 2>/dev/null)
     || fail "unexpected Samba realm: $configured_realm"
 
 domain_info=$(samba-tool domain info 127.0.0.1)
-require_contains "$domain_info" "Domain           : $REALM" \
+require_contains "$domain_info" "Domain           : ${REALM,,}" \
     "Samba domain info"
 require_contains "$domain_info" "Netbios domain   : $DOMAIN" \
     "Samba domain info"
