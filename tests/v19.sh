@@ -92,7 +92,7 @@ host -W 3 -t SOA "${REALM,,}" 127.0.0.1 | grep -Fq 'has SOA record' \
 
 [[ $(stat -c '%U:%G:%a' /etc/krb5.keytab) = root:root:600 ]] \
     || fail "Kerberos keytab permissions are not root:root 0600"
-printf '%s' "$TKL_TEST_APP_PASS" | kinit "Administrator@$REALM"
+printf '%s' "$TKL_TEST_APP_PASS" | kinit administrator
 klist -s || fail "Kerberos administrator ticket was not created"
 
 cat > "$AUTH_FILE" <<EOF
