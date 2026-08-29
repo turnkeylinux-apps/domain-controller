@@ -306,6 +306,25 @@ def run_samba_provision(command, admin_password):
     return (0 if result is None else result), output
 
 
+def obtain_kerberos_ticket(username, admin_password, attempts=30, delay=1):
+    """Wait for the newly started local KDC without exposing its password."""
+    result = None
+    for attempt in range(attempts):
+        result = subprocess.run(
+            ['kinit', username], input=admin_password, encoding='utf-8',
+            stdout=PIPE, stderr=PIPE)
+        if result.returncode == 0:
+            return
+        if attempt + 1 < attempts:
+            time.sleep(delay)
+
+    error = (result.stderr or '').strip()
+    if admin_password:
+        error = error.replace(admin_password, '<REDACTED>')
+    raise RuntimeError(
+        f'Kerberos did not become ready after {attempts} attempts: {error}')
+
+
 def update_resolvconf(domain, nameserver, interactive):
     if not dns_reachable(nameserver):
         return error_msg(
@@ -743,9 +762,7 @@ def main():
             while subprocess.run(['systemctl', 'is-active',
                                   '--quiet', 'samba-ad-dc']).returncode != 0:
                 time.sleep(1)
-            subprocess.check_output(['kinit', username],
-                                    encoding='utf-8',
-                                    input=admin_password)
+            obtain_kerberos_ticket(username, admin_password)
             msg = "\nPlease ensure that you have set a static IP. If you" \
                   " haven't already, please ensure that you do that ASAP," \
                   " and update IP addresses in DNS and hosts file (please" \

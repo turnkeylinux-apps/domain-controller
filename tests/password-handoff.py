@@ -95,12 +95,66 @@ def check_provision(module, result, emitted):
         fail('provision output did not redact a reflected password')
 
 
+def check_kerberos_readiness(module):
+    calls = []
+    sleeps = []
+    results = iter([
+        types.SimpleNamespace(returncode=1, stderr='KDC not ready'),
+        types.SimpleNamespace(returncode=0, stderr=''),
+    ])
+
+    def fake_run(command, **kwargs):
+        calls.append((command, kwargs))
+        return next(results)
+
+    original_run = module.subprocess.run
+    original_sleep = module.time.sleep
+    module.subprocess.run = fake_run
+    module.time.sleep = sleeps.append
+    try:
+        module.obtain_kerberos_ticket('administrator', SECRET, attempts=3,
+                                     delay=0.25)
+    finally:
+        module.subprocess.run = original_run
+        module.time.sleep = original_sleep
+
+    if len(calls) != 2 or sleeps != [0.25]:
+        fail('Kerberos readiness retry did not stop after success')
+    for command, kwargs in calls:
+        if command != ['kinit', 'administrator'] or SECRET in command:
+            fail('Kerberos retry placed the password in argv')
+        if kwargs.get('input') != SECRET:
+            fail('Kerberos retry did not pass the password on stdin')
+
+    def reflected_failure(command, **kwargs):
+        return types.SimpleNamespace(
+            returncode=1, stderr=f'failure reflected {SECRET}')
+
+    module.subprocess.run = reflected_failure
+    module.time.sleep = lambda delay: None
+    try:
+        try:
+            module.obtain_kerberos_ticket('administrator', SECRET,
+                                         attempts=1, delay=0)
+        except RuntimeError as error:
+            message = str(error)
+        else:
+            fail('Kerberos readiness terminal failure was not reported')
+    finally:
+        module.subprocess.run = original_run
+        module.time.sleep = original_sleep
+
+    if SECRET in message or '<REDACTED>' not in message:
+        fail('Kerberos readiness failure did not redact the password')
+
+
 def main():
     check_wrapper()
     module = load_domain_module()
     check_provision(module, None, f'created domain with {SECRET}')
     check_provision(module, 17, f'provision failed for {SECRET}')
-    print('PASS: password uses stdin and in-process redacted provisioning')
+    check_kerberos_readiness(module)
+    print('PASS: password uses stdin with redacted provision and KDC retry')
 
 
 if __name__ == '__main__':
