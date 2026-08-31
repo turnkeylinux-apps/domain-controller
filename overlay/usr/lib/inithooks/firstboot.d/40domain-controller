@@ -20,6 +20,7 @@ fi
 #
 # For more info see './domain-controller.py --help'
 
-$INITHOOKS_PATH/bin/domain-controller.py --domain="$APP_DOMAIN" \
-                --realm="$APP_REALM" --pass="$APP_PASS" \
-                --join_ns="$APP_JOIN_NS" --username="$APP_ADMIN_USER"
+printf '%s' "$APP_PASS" | \
+    $INITHOOKS_PATH/bin/domain-controller.py --domain="$APP_DOMAIN" \
+        --realm="$APP_REALM" --pass-stdin \
+        --join_ns="$APP_JOIN_NS" --username="$APP_ADMIN_USER"

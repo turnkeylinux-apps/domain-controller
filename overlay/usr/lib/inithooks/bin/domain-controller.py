@@ -4,8 +4,8 @@
 """Configure Samba AD domain, realm and administrator password
 
 Options:
-    --pass=         AD domain 'Administrator' password.
-                    Must not contain '(' or ')' characters.
+    --pass-stdin    Read the AD domain 'Administrator' password from stdin.
+                    The password must not contain '(' or ')' characters.
                     If not provided, will ask interactively.
     --realm=        AD Kerberos realm & AD DNS zone to create or join.
                     Realm will be uppercase and DNS zone will be lower case.
@@ -18,10 +18,10 @@ Options:
                     DEFAULT=DOMAIN
    --join_ns=       To join an existing domain, you must provide the IPv4 of
                     the nameserver to use (plus the other 3 options).
-                    If '--pass', '--realm' & '--domain' set, but not
+                    If '--pass-stdin', '--realm' & '--domain' set, but not
                     '--join_ns', this script will create a new domain. If
-                    '--pass' &/or '--realm' &/or '--domain' not set, will ask
-                    interactively.
+                    '--pass-stdin' &/or '--realm' &/or '--domain' not set,
+                    will ask interactively.
                     If '--join_ns' is set but is not a valid IPv4, will ask
                     interactively.
                     Also requires a valid '--hostname' (below) to be set.
@@ -59,16 +59,16 @@ Notes:
 
 Warning: previous configuration will be cleared!
 
-To create a new AD domain non-interactively, set valid '--pass', '--realm',
-'--domain' & --cups-printing.
+To create a new AD domain non-interactively, pipe the password to stdin and set
+'--pass-stdin', '--realm', '--domain' & --cups-printing.
 
-To join an existing domain non-interactively, set valid '--pass', '--realm',
---domain', '--join_ns', '--hostname' & '--cups-printing' (and optionally
-'--username').
+To join an existing domain non-interactively, pipe the password to stdin and
+set '--pass-stdin', '--realm', '--domain', '--join_ns', '--hostname' &
+'--cups-printing' (and optionally '--username').
 
-To run interactively, ensure that '--pass' &/or '--realm' &/or '--domain' are
-_not_ set. Or set env var '_TURNKEY_INIT'. All required components that are not
-provided valid values via commandline will be asked.
+To run interactively, ensure that '--pass-stdin' &/or '--realm' &/or '--domain'
+are _not_ set. Or set env var '_TURNKEY_INIT'. All required components that are
+not provided valid values via commandline will be asked.
 """
 
 import sys
@@ -77,10 +77,12 @@ import os
 import glob
 import shutil
 import getopt
+import io
 import socket
 import ipaddress
 import time
 import subprocess
+from contextlib import redirect_stderr, redirect_stdout
 from subprocess import PIPE, STDOUT
 
 from libinithooks.dialog_wrapper import Dialog
@@ -282,6 +284,47 @@ def run_command(command, stdin=False):
     return proc.returncode, output
 
 
+def run_samba_provision(command, admin_password):
+    """Provision without placing the administrator password in process argv.
+
+    samba-tool is a Python frontend. Calling its public entry point in-process
+    keeps the password in Python memory and out of the kernel process list.
+    The supplied command intentionally excludes --adminpass so it is also safe
+    to display and retain in failure logs.
+    """
+    from samba.netcmd.main import samba_tool
+
+    output_buffer = io.StringIO()
+    with redirect_stdout(output_buffer), redirect_stderr(output_buffer):
+        result = samba_tool(*command[1:], f'--adminpass={admin_password}')
+    output = output_buffer.getvalue()
+    if admin_password:
+        output = output.replace(admin_password, '<REDACTED>')
+    if output:
+        sys.stdout.write(output)
+        sys.stdout.flush()
+    return (0 if result is None else result), output
+
+
+def obtain_kerberos_ticket(username, admin_password, attempts=30, delay=1):
+    """Wait for the newly started local KDC without exposing its password."""
+    result = None
+    for attempt in range(attempts):
+        result = subprocess.run(
+            ['kinit', username], input=admin_password, encoding='utf-8',
+            stdout=PIPE, stderr=PIPE)
+        if result.returncode == 0:
+            return
+        if attempt + 1 < attempts:
+            time.sleep(delay)
+
+    error = (result.stderr or '').strip()
+    if admin_password:
+        error = error.replace(admin_password, '<REDACTED>')
+    raise RuntimeError(
+        f'Kerberos did not become ready after {attempts} attempts: {error}')
+
+
 def update_resolvconf(domain, nameserver, interactive):
     if not dns_reachable(nameserver):
         return error_msg(
@@ -379,7 +422,7 @@ def main():
     try:
         opts, args = getopt.gnu_getopt(sys.argv[1:], "h",
                                        ['help',
-                                        'pass=',
+                                        'pass-stdin',
                                         'domain=',
                                         'realm=',
                                         'join_ns=',
@@ -401,8 +444,8 @@ def main():
     for opt, val in opts:
         if opt in ('-h', '--help'):
             usage()
-        elif opt == '--pass':
-            admin_password = val
+        elif opt == '--pass-stdin':
+            admin_password = sys.stdin.read()
         elif opt == '--realm':
             realm = val
         elif opt == '--domain':
@@ -616,7 +659,6 @@ def main():
         export_krb = ['samba-tool', 'domain',
                       'exportkeytab', '/etc/krb5.keytab']
 
-        krb_pass = None
         if create:
             ip = NET_IP  # will add to hosts file
             samba_domain = ['samba-tool', 'domain', 'provision',
@@ -624,10 +666,11 @@ def main():
                             '--dns-backend=SAMBA_INTERNAL',
                             f'--realm={realm}',
                             f'--domain={domain}',
-                            f'--adminpass={admin_password}',
                             f'--option=dns forwarder={DNS_FORWARDER}',
                             f'--option=interfaces=127.0.0.1 {NET_IP}']
-            commands = [samba_domain, set_expiry, export_krb]
+            commands = [(samba_domain, None, admin_password),
+                        (set_expiry, None, None),
+                        (export_krb, None, None)]
             nameserver = '127.0.0.1'
             hostname = HOSTNAME
         else:  # join
@@ -638,11 +681,12 @@ def main():
                 fob.write(f'    default_realm = {realm}')
             ip = None  # will update 127.0.1.1 hosts entry only
             config_krb = ['kinit', username]
-            krb_pass = admin_password
             samba_domain = ['samba-tool', 'domain', 'join',
                             realm.lower(), 'DC',
                             '--option=idmap_ldb:use rfc2307 = yes']
-            commands = [config_krb, samba_domain, export_krb]
+            commands = [(config_krb, admin_password, None),
+                        (samba_domain, None, None),
+                        (export_krb, None, None)]
             nameserver = join_nameserver
 
         finalize = False
@@ -653,12 +697,14 @@ def main():
         if ip:
             update_hosts(ip, hostname, realm)
 
-        for samba_command in commands:
+        for samba_command, stdin_secret, provision_password in commands:
             print(f'Running command: {" ".join(samba_command)}')
-            if krb_pass:
+            if provision_password is not None:
+                samba_run_code, samba_run_out = run_samba_provision(
+                        samba_command, provision_password)
+            elif stdin_secret is not None:
                 samba_run_code, samba_run_out = run_command(samba_command,
-                                                            stdin=krb_pass)
-                krb_pass = None
+                                                            stdin=stdin_secret)
             else:
                 samba_run_code, samba_run_out = run_command(samba_command)
             if samba_run_code != 0:
@@ -716,9 +762,7 @@ def main():
             while subprocess.run(['systemctl', 'is-active',
                                   '--quiet', 'samba-ad-dc']).returncode != 0:
                 time.sleep(1)
-            subprocess.check_output(['kinit', username],
-                                    encoding='utf-8',
-                                    input=admin_password)
+            obtain_kerberos_ticket(username, admin_password)
             msg = "\nPlease ensure that you have set a static IP. If you" \
                   " haven't already, please ensure that you do that ASAP," \
                   " and update IP addresses in DNS and hosts file (please" \

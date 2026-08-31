@@ -25,12 +25,18 @@ Steps that need to be taken when first launched:
   domain/realm: domain.lan
   ip address: 192.168.1.50
 
-# Substitute $ADMIN_PASS for the administrator password 
+# Read the administrator password without exposing it in process arguments.
+read -rsp 'Domain Administrator password: ' ADMIN_PASS
+echo
+exec 3<<<"$ADMIN_PASS"
+unset ADMIN_PASS
+
 # the 1.168.192 is from the "network IP" (backwards) i.e. this example is for 192.168.1.x
-samba-tool dns zonecreate dc1 1.168.192.in-addr.arpa --username=administrator --password="$ADMIN_PASS"
+PASSWD_FD=3 samba-tool dns zonecreate dc1 1.168.192.in-addr.arpa --username=administrator
 
 # as above but 50 is from the IP i.e. 192.168.1.50
-samba-tool dns add dom-controller 1.168.192.in-addr.arpa 192.168.1.50 PTR dc1.domain.lan --username=administrator --password="$ADMIN_PASS"
+PASSWD_FD=3 samba-tool dns add dom-controller 1.168.192.in-addr.arpa 192.168.1.50 PTR dc1.domain.lan --username=administrator
+exec 3<&-
 
 - (optional) Adjust DNS forwarder in /etc/samba/smb.conf
     -defaults to the host's upstream resolver detected at

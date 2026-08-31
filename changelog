@@ -10,6 +10,9 @@ turnkey-domain-controller-19.0 (1) turnkey; urgency=low
     disabled by default.
 
   * domain-controller inithook fixes:
+    - Keep the administrator password out of firstboot and samba-tool process
+      arguments, console output, and retained command logs.
+    - Wait for the newly provisioned Kerberos service before firstboot exits.
     - Report the actual samba error (not a literal "{samba_run_out}") when
       provisioning fails non-interactively.
     - Validate nameserver IPs strictly (reject partial forms like "8.8").
